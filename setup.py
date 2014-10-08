@@ -1,0 +1,23 @@
+from distutils.core import setup
+
+__version__ = None
+with open('bluesnap/version.py') as f:
+    exec(f.read())
+
+with open('README.md') as f:
+    long_description = f.read()
+
+setup(
+    name='bluesnap',
+    version=__version__,
+    author='Jian Yuan Lee',
+    author_email='jian@justyoyo.com',
+    url='https://github.com/justyoyo/bluesnap-python',
+    # license='TODO',
+    description='Python module to interact with Bluesnap API.',
+    long_description=long_description,
+    packages=['bluesnap'],
+    install_requires=[
+        'requests==2.4.3'
+    ],
+)
