@@ -16,7 +16,8 @@ $ nosetests tests/
 
 ```sh
 $ pip install -r requirements.txt
+$ pyxbgen -u http://home.bluesnap.com/integrationguide/credit-card-info.xsd -m bluesnap/schema/credit_card_info
 $ pyxbgen -u http://home.bluesnap.com/integrationguide/order.xsd -m bluesnap/schema/order
 $ pyxbgen -u http://home.bluesnap.com/integrationguide/shopper.xsd -m bluesnap/schema/shopper
-$ pyxbgen -u http://home.bluesnap.com/integrationguide/credit-card-info.xsd -m bluesnap/schema/credit_card_info
+$ pyxbgen -u http://home.bluesnap.com/integrationguide/web-info.xsd -m bluesnap/schema/web_info
 ```
