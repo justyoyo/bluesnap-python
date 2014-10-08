@@ -9,8 +9,6 @@ class Client(object):
         'sandbox': 'https://sandbox.bluesnap.com'
     }
 
-    API_VERSION = '2'
-
     def __init__(self,
                  # Environment
                  env,
