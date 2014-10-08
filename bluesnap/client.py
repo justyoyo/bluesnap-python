@@ -32,3 +32,21 @@ class Client(object):
         return HTTPBasicAuth(self.username, self.password)
 
     # def request(self, method, url, ):
+
+
+__client__ = None
+
+
+def default():
+    global __client__
+
+    if __client__ is None:
+        # TODO refactor
+        __client__ = Client(
+            env='sandbox',
+            username='test',
+            password='password',
+            default_store_id='100'
+        )
+
+    return __client__
