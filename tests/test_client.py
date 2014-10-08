@@ -1,15 +1,15 @@
 import unittest
 
-from bluesnap.client import BluesnapClient
+from bluesnap.client import Client
 
 
-class BluesnapClientTestCase(unittest.TestCase):
+class ClientTestCase(unittest.TestCase):
     def setUp(self):
-        self.client = BluesnapClient(env='live')
+        self.client = Client(env='live')
 
     def test_env(self):
-        self.assertEqual(BluesnapClient.ENDPOINTS.keys(), ['live', 'sandbox'])
+        self.assertEqual(Client.ENDPOINTS.keys(), ['live', 'sandbox'])
 
-        for env, endpoint_url in BluesnapClient.ENDPOINTS.iteritems():
-            client = BluesnapClient(env=env)
+        for env, endpoint_url in Client.ENDPOINTS.iteritems():
+            client = Client(env=env)
             self.assertEqual(client.endpoint_url, endpoint_url)
