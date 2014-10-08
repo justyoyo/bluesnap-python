@@ -28,16 +28,30 @@ class Client(object):
     def endpoint_url(self):
         return self.ENDPOINTS[self.env]
 
-    def _get_http_basic_auth(self):
+    @property
+    def http_basic_auth(self):
         return HTTPBasicAuth(self.username, self.password)
 
-    # def request(self, method, url, ):
+    def request(self, method, path, data=None):
+        headers = {
+            'content-type': 'application/xml',
+        }
+
+        url = self.endpoint_url + path
+
+        r = requests.request(method, url,
+                             headers=headers,
+                             auth=self.http_basic_auth,
+                             data=data)
+
+        return r
 
 
 __client__ = None
 
 
 def default():
+    """:rtype : Client"""
     global __client__
 
     if __client__ is None:
@@ -49,4 +63,11 @@ def default():
             default_store_id='100'
         )
 
+    return __client__
+
+
+def configure(**config):
+    """:rtype : Client"""
+    global __client__
+    __client__ = Client(**config)
     return __client__
