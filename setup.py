@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 __version__ = None
 with open('bluesnap/version.py') as f:
@@ -16,7 +16,7 @@ setup(
     # license='TODO',
     description='Python module to interact with Bluesnap API.',
     long_description=long_description,
-    packages=['bluesnap'],
+    packages=find_packages(),
     install_requires=[
         'requests==2.4.3'
     ],
