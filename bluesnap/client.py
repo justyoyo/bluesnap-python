@@ -33,18 +33,30 @@ class Client(object):
         return HTTPBasicAuth(self.username, self.password)
 
     def request(self, method, path, data=None):
+        """
+        :type method: str
+        """
         headers = {
             'content-type': 'application/xml',
         }
 
         url = self.endpoint_url + path
 
-        r = requests.request(method, url,
-                             headers=headers,
-                             auth=self.http_basic_auth,
-                             data=data)
+        request = getattr(requests, method.lower())  # requests.{get,post,put,delete}
 
-        return r
+        r = request(url,
+                    headers=headers,
+                    auth=self.http_basic_auth,
+                    data=data)
+
+        if r.status_code in (requests.codes.ok, requests.codes.created):
+            # Everything is okay
+            return r
+        elif r.status_code == requests.codes.bad:
+            return r
+        else:
+            # Don't know how to handle this
+            r.raise_for_status()
 
 
 __client__ = None

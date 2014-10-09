@@ -18,6 +18,7 @@ setup(
     long_description=long_description,
     packages=find_packages(),
     install_requires=[
+        'lxml==3.4.0',
         'requests==2.4.3'
     ],
 )
