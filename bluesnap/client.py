@@ -73,9 +73,10 @@ def default():
         # TODO refactor
         __client__ = Client(
             env='sandbox',
-            username='test',
+            username='username',
             password='password',
-            default_store_id='100'
+            default_store_id='1',
+            seller_id='1'
         )
 
     return __client__
