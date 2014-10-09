@@ -21,4 +21,5 @@ setup(
         'lxml==3.4.0',
         'requests==2.4.3'
     ],
+    test_suite='nose.collector'
 )
