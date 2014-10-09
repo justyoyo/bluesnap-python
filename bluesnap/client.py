@@ -9,6 +9,10 @@ class Client(object):
         'sandbox': 'https://sandbox.bluesnap.com'
     }
 
+    XML_NAMESPACES = {
+        None: 'http://ws.plimus.com'
+    }
+
     def __init__(self,
                  # Environment
                  env,

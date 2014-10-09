@@ -13,13 +13,16 @@ class Resource(object):
         self.client = client or default_client()
         """:type : .client.Client"""
 
+    def create_root_element(self, tag):
+        return objectify.Element(tag, nsmap=self.client.XML_NAMESPACES)
+
 
 class Shopper(Resource):
     path = '/services/2/shoppers'
 
     def create(self):
         # /shopper
-        shopper = objectify.Element('shopper', nsmap={None: 'http://ws.plimus.com'})
+        shopper = self.create_root_element('shopper')
 
         # /shopper/shopper-info
         shopper_info = objectify.SubElement(shopper, 'shopper-info')
@@ -28,7 +31,7 @@ class Shopper(Resource):
         shopper_info['shopper-currency'] = 'GBP'
         shopper_info['locale'] = 'en'
 
-        shopper_info['seller-shopper-id'] = '1234'  # Our user id
+        # shopper_info['seller-shopper-id'] = '1234'  # Our user id
 
         # /shopper/shopper-info/shopper-contact-info
         shopper_contact_info = objectify.SubElement(shopper_info, 'shopper-contact-info')
@@ -77,6 +80,9 @@ class Shopper(Resource):
 
         library_versions = 'requests {}; python {}'.format(requests.__version__, platform.version())
         web_info['user-agent'] = 'justyoyo/bluesnap-python {} ({})'.format(__version__, library_versions)
+
+        objectify.deannotate(shopper)
+        # etree.cleanup_namespaces(shopper)
 
         xml = etree.tostring(shopper, pretty_print=True)
         print xml
@@ -146,3 +152,12 @@ class Shopper(Resource):
             # print messages_schema.CreateFromDocument(r.text)
 
         raise Exception
+
+
+class Order(Resource):
+    path = '/services/2/orders'
+
+    def create(self):
+        # /order
+        order = self.create_root_element('order')
+
