@@ -12,16 +12,13 @@ class Resource(object):
         self.client = client or default_client()
         """:type : .client.Client"""
 
-    def create_root_element(self, tag):
-        return objectify.Element('{http://ws.plimus.com}' + tag, nsmap=self.client.XML_NAMESPACES)
-
 
 class Shopper(Resource):
     path = '/services/2/shoppers'
 
     def create(self):
-        E = ElementMaker(namespace='http://ws.plimus.com',
-                         nsmap={None: 'http://ws.plimus.com'})
+        E = ElementMaker(namespace=self.client.NAMESPACE,
+                         nsmap={None: self.client.NAMESPACE})
 
         SHOPPER = E.shopper
         SHOPPER_INFO = getattr(E, 'shopper-info')
