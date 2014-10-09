@@ -1,11 +1,10 @@
 from urlparse import urlparse
-import platform
 
 from lxml import objectify, etree
+from lxml.builder import ElementMaker
 import requests
 
 from .client import default as default_client
-from .version import __version__
 
 
 class Resource(object):
@@ -14,75 +13,157 @@ class Resource(object):
         """:type : .client.Client"""
 
     def create_root_element(self, tag):
-        return objectify.Element(tag, nsmap=self.client.XML_NAMESPACES)
+        return objectify.Element('{http://ws.plimus.com}' + tag, nsmap=self.client.XML_NAMESPACES)
 
 
 class Shopper(Resource):
     path = '/services/2/shoppers'
 
     def create(self):
+        E = ElementMaker(namespace='http://ws.plimus.com',
+                         nsmap={None: 'http://ws.plimus.com'})
+
+        SHOPPER = E.shopper
+        SHOPPER_INFO = getattr(E, 'shopper-info')
+        STORE_ID = getattr(E, 'store-id')
+        SHOPPER_CURRENCY = getattr(E, 'shopper-currency')
+        LOCALE = E.locale
+        SELLER_SHOPPER_ID = getattr(E, 'seller-shopper-id')
+        SHOPPER_CONTACT_INFO = getattr(E, 'shopper-contact-info')
+        FIRST_NAME = getattr(E, 'first-name')
+        LAST_NAME = getattr(E, 'last-name')
+        EMAIL = E.email
+        ADDRESS1 = E.address1
+        CITY = E.city
+        ZIP = E.zip
+        COUNTRY = E.country
+        PHONE = E.phone
+        PAYMENT_INFO = getattr(E, 'payment-info')
+        CREDIT_CARDS_INFO = getattr(E, 'credit-cards-info')
+        CREDIT_CARD_INFO = getattr(E, 'credit-card-info')
+        BILLING_CONTACT_INFO = getattr(E, 'billing-contact-info')
+        CREDIT_CARD = getattr(E, 'credit-card')
+        CARD_TYPE = getattr(E, 'card-type')
+        EXPIRATION_MONTH = getattr(E, 'expiration-month')
+        EXPIRATION_YEAR = getattr(E, 'expiration-year')
+        CARD_NUMBER = getattr(E, 'card-number')
+        SECURITY_CODE = getattr(E, 'security-code')
+        ENCRYPTED_CARD_NUMBER = getattr(E, 'encrypted-card-number')
+        ENCRYPTED_SECURITY_CODE = getattr(E, 'encrypted-security-code')
+        WEB_INFO = getattr(E, 'web-info')
+        IP = E.ip
+        USER_AGENT = getattr(E, 'user-agent')
+
+        shopper = SHOPPER(
+            SHOPPER_INFO(
+                STORE_ID(self.client.default_store_id),
+                SHOPPER_CURRENCY('GBP'),
+                LOCALE('en'),
+                # SELLER_SHOPPER_ID('1234'),
+                SHOPPER_CONTACT_INFO(
+                    FIRST_NAME('John'),
+                    LAST_NAME('Doe'),
+                    EMAIL('test@justyoyo.com'),
+                    ADDRESS1('(Empty)'),
+                    CITY('(Empty)'),
+                    ZIP('SW5'),
+                    COUNTRY('gb'),
+                    PHONE('07777777777')
+                ),
+                PAYMENT_INFO(
+                    CREDIT_CARDS_INFO(
+                        CREDIT_CARD_INFO(
+                            BILLING_CONTACT_INFO(
+                                FIRST_NAME('John'),
+                                LAST_NAME('Doe'),
+                                EMAIL('test@justyoyo.com'),
+                                ADDRESS1('(Empty)'),
+                                CITY('(Empty)'),
+                                ZIP('SW5'),
+                                COUNTRY('gb'),
+                                PHONE('07777777777')
+                            ),
+                            CREDIT_CARD(
+                                CARD_TYPE('VISA'),
+                                EXPIRATION_MONTH('10'),
+                                EXPIRATION_YEAR('2015'),
+                                CARD_NUMBER('4111111111111111'),
+                                SECURITY_CODE('111')
+                            )
+                        )
+                    )
+                )
+            ),
+            WEB_INFO(
+                IP('1.1.1.1'),
+                USER_AGENT(self.client.user_agent)
+            )
+        )
+
         # /shopper
-        shopper = self.create_root_element('shopper')
+        # shopper = self.create_root_element('shopper')
 
         # /shopper/shopper-info
-        shopper_info = objectify.SubElement(shopper, 'shopper-info')
-        # shopper_info.username = 'user_123'
-        shopper_info['store-id'] = self.client.default_store_id
-        shopper_info['shopper-currency'] = 'GBP'
-        shopper_info['locale'] = 'en'
+        # shopper_info = objectify.SubElement(shopper, 'shopper-info')
+        # # shopper_info.username = 'user_123'
+        # shopper_info['store-id'] = self.client.default_store_id
+        # shopper_info['shopper-currency'] = 'GBP'
+        # shopper_info['locale'] = 'en'
 
         # shopper_info['seller-shopper-id'] = '1234'  # Our user id
 
         # /shopper/shopper-info/shopper-contact-info
-        shopper_contact_info = objectify.SubElement(shopper_info, 'shopper-contact-info')
-        shopper_contact_info['first-name'] = 'John'
-        shopper_contact_info['last-name'] = 'Doe'
-        shopper_contact_info['email'] = 'test@justyoyo.com'
-        shopper_contact_info['address1'] = '(Empty)'
-        shopper_contact_info['city'] = '(Empty)'
-        shopper_contact_info['zip'] = 'SW5'
-        shopper_contact_info['country'] = 'gb'
-        shopper_contact_info['phone'] = '07777777777'
+        # shopper_contact_info = objectify.SubElement(shopper_info, 'shopper-contact-info')
+        # shopper_contact_info['first-name'] = 'John'
+        # shopper_contact_info['last-name'] = 'Doe'
+        # shopper_contact_info['email'] = 'test@justyoyo.com'
+        # shopper_contact_info['address1'] = '(Empty)'
+        # shopper_contact_info['city'] = '(Empty)'
+        # shopper_contact_info['zip'] = 'SW5'
+        # shopper_contact_info['country'] = 'gb'
+        # shopper_contact_info['phone'] = '07777777777'
 
         # /shopper/shopper-info/payment-info
-        payment_info = objectify.SubElement(shopper_info, 'payment-info')
+        # payment_info = objectify.SubElement(shopper_info, 'payment-info')
 
         # /shopper/shopper-info/payment-info/credit-cards-info
-        credit_cards_info = objectify.SubElement(payment_info, 'credit-cards-info')
+        # credit_cards_info = objectify.SubElement(payment_info, 'credit-cards-info')
 
         # /shopper/shopper-info/payment-info/credit-cards-info/credit-card-info
-        credit_card_info = objectify.SubElement(credit_cards_info, 'credit-card-info')
+        # credit_card_info = objectify.SubElement(credit_cards_info, 'credit-card-info')
 
         # /shopper/shopper-info/payment-info/credit-cards-info/credit-card-info/billing-contact-info
-        billing_contact_info = objectify.SubElement(credit_card_info, 'billing-contact-info')
-        billing_contact_info['first-name'] = 'John'
-        billing_contact_info['last-name'] = 'Doe'
-        billing_contact_info['email'] = 'test@justyoyo.com'
-        billing_contact_info['address1'] = '(Empty)'
-        billing_contact_info['city'] = '(Empty)'
-        billing_contact_info['zip'] = 'SW5'
-        billing_contact_info['country'] = 'gb'
-        billing_contact_info['phone'] = '07777777777'
+        # billing_contact_info = objectify.SubElement(credit_card_info, 'billing-contact-info')
+        # billing_contact_info['first-name'] = 'John'
+        # billing_contact_info['last-name'] = 'Doe'
+        # billing_contact_info['email'] = 'test@justyoyo.com'
+        # billing_contact_info['address1'] = '(Empty)'
+        # billing_contact_info['city'] = '(Empty)'
+        # billing_contact_info['zip'] = 'SW5'
+        # billing_contact_info['country'] = 'gb'
+        # billing_contact_info['phone'] = '07777777777'
 
         # /shopper/shopper-info/payment-info/credit-cards-info/credit-card-info/credit-card
-        credit_card = objectify.SubElement(credit_card_info, 'credit-card')
-        credit_card['card-type'] = 'VISA'
-        credit_card['expiration-month'] = '10'
-        credit_card['expiration-year'] = '2014'
-        credit_card['card-number'] = '4111111111111111'
-        credit_card['security-code'] = '123'
+        # credit_card = objectify.SubElement(credit_card_info, 'credit-card')
+        # credit_card['card-type'] = 'VISA'
+        # credit_card['expiration-month'] = '10'
+        # credit_card['expiration-year'] = '2014'
+        # credit_card['card-number'] = '4111111111111111'
+        # credit_card['security-code'] = '123'
         # credit_card['encrypted-card-number'] = r'$bsjs_0_0_1$fcFSIszGd/zeff2ykDptFvIVK5fsLxZpVmH1bujSYBfRwqRGvHbt/ig4BiSaCdnhqvFge/eMDcn6HMrzot4jNDxij70eEDUpoNI/ynhwlE7YEKfUPaax8OayU6SrAh1j5XlLAqHOXi9e0dfouy684uJP8l/nnnSAb6YsBFE+wTiSUJkuTCEbLdIxVPon7pfmPCiWFbq5ApTg2OoyBnHCEazAwNwFYb5rDi2clGZOrZ9t2aTiLMt8lI9eOxGK56B4VbMLEPFx9cC1k28mhl9ngEP8krM1hsmr60PtjbChBl76YGiIIkpO4oB4/B60mJ3yH9m7TCNVf6o+hAuhGPUPFA==$s9Gt7eXUdG3wnsCYXuylw8GEbPuHHtoc82wuDLlawiYj9Cz97C7X6VJ8Lr9SpPcX$0lkNKEuDWG6d9GVf3TWykyEePSfgAdqPPLgCV2JW7bQ='
         # credit_card['encrypted-security-code'] = r'$bsjs_0_0_1$WIZtg12e6eDuZ9lVIypJ5KZ0l81pHaSuIHvsavNowrcnvhmPzVGasjWMi9MxEAUPjoA+t/PKLTu1zuclcQQU9Qrrd/inOyb4JQdzu8V0f6bnl3b6r8n20c8hTY/SxDc2VTQUnprD4ue9xanHX+EeTDxBMAr7+EI9DvF6v/wGpJUzxi9EbxIA1I9yPtbXP+CnXlRCwOkIUxA2G4u178lSkEIN+2RO190be1imguBVuPh5V29/CeOjujk+3Wf6XcFjIbt5yN7WFYsrrY7XVWyTu9LXTto3HWihUAJXSt6y9Q3WuZ6cL+cYsqs6OmupmyPFsiStn7cWYJxcrst9/XsE1A==$J6AeBXHNoDQ84rq/1yNtZX5iPbbXlXBz0LxK3Vx8JZA=$lBpanoq9MuGmI7N/cpiVoO/ueF4JZm5ofrDVCj9Wvw0='
 
         # /shopper/web-info
-        web_info = objectify.SubElement(shopper, 'web-info')
-        web_info['ip'] = '1.1.1.1'
+        # web_info = objectify.SubElement(shopper, 'web-info')
+        # web_info['ip'] = '1.1.1.1'
+        #
+        # library_versions = 'requests {}; python {}'.format(requests.__version__, platform.version())
+        # web_info['user-agent'] = 'justyoyo/bluesnap-python {} ({})'.format(__version__, library_versions)
 
-        library_versions = 'requests {}; python {}'.format(requests.__version__, platform.version())
-        web_info['user-agent'] = 'justyoyo/bluesnap-python {} ({})'.format(__version__, library_versions)
-
-        objectify.deannotate(shopper)
+        # objectify.deannotate(shopper)
         # etree.cleanup_namespaces(shopper)
+        # etree.replace(self.create_root_element('shopper'))
+        # shopper.namespaces = self.client.XML_NAMESPACES
 
         xml = etree.tostring(shopper, pretty_print=True)
         print xml

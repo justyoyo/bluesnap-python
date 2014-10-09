@@ -1,6 +1,9 @@
+import platform
+
 from requests.auth import HTTPBasicAuth
-import logging
 import requests
+
+from .version import __version__
 
 
 class Client(object):
@@ -38,6 +41,11 @@ class Client(object):
     @property
     def http_basic_auth(self):
         return HTTPBasicAuth(self.username, self.password)
+
+    @property
+    def user_agent(self):
+        library_versions = 'requests {}; python {}'.format(requests.__version__, platform.version())
+        return 'justyoyo/bluesnap-python {} ({})'.format(__version__, library_versions)
 
     def request(self, method, path, data=None):
         """
