@@ -1,7 +1,7 @@
 import unittest
 
 from bluesnap.client import configure as configure_client
-from bluesnap.models import ContactInfo, PlaintextCreditCard
+from bluesnap.models import ContactInfo, PlainCreditCard
 from bluesnap.resources import Order, Shopper
 
 from helper import SANDBOX_CLIENT_CONFIG
@@ -23,7 +23,7 @@ class ShopperTestCase(unittest.TestCase):
             phone='07777777777'
         )
 
-        credit_card = PlaintextCreditCard(
+        credit_card = PlainCreditCard(
             card_type='VISA',
             expiration_month='12',
             expiration_year='2015',

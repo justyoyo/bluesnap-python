@@ -20,7 +20,7 @@ class Shopper(Resource):
     def create(self, contact_info, credit_card):
         """
         :type contact_info : models.ContactInfo
-        :type credit_card : models.PlaintextCreditCard or models.EncryptedCreditCard
+        :type credit_card : models.PlainCreditCard or models.EncryptedCreditCard
         """
         E = ElementMaker(namespace=self.client.NAMESPACE,
                          nsmap={None: self.client.NAMESPACE})
@@ -61,7 +61,7 @@ class Shopper(Resource):
             EXPIRATION_MONTH(credit_card.expiration_month),
             EXPIRATION_YEAR(credit_card.expiration_year)
         )
-        if isinstance(credit_card, models.PlaintextCreditCard):
+        if isinstance(credit_card, models.PlainCreditCard):
             credit_card_element.append(CARD_NUMBER(credit_card.card_number))
             credit_card_element.append(SECURITY_CODE(credit_card.security_code))
         elif isinstance(credit_card, models.EncryptedCreditCard):
