@@ -7,7 +7,8 @@ SANDBOX_CLIENT_CONFIG = {
     'env': 'sandbox',
     'username': 'API_14127729102161320867365',
     'password': 'JustYoyo1',
-    'default_store_id': '13945'
+    'default_store_id': '13945',
+    'seller_id': '397608'
 }
 
 # Dummy cards taken from

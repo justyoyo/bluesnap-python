@@ -15,7 +15,9 @@ class Client(object):
                  # Authentication
                  username, password,
                  # Default store Id
-                 default_store_id):
+                 default_store_id,
+                 # Seller id
+                 seller_id):
         if env not in self.ENDPOINTS:
             raise ValueError('env not in {0}'.format(self.ENDPOINTS.keys()))
 
@@ -23,6 +25,7 @@ class Client(object):
         self.username = username
         self.password = password
         self.default_store_id = default_store_id
+        self.seller_id = seller_id
 
     @property
     def endpoint_url(self):

@@ -18,16 +18,19 @@ class Shopper(Resource):
     path = '/services/2/shoppers'
 
     def create(self):
-        # <shopper/>
+        # /shopper
         shopper = objectify.Element('shopper', nsmap={None: 'http://ws.plimus.com'})
-        shopper['Merchant-shopper-id'] = '123456'  # Not implemented
 
+        # /shopper/shopper-info
         shopper_info = objectify.SubElement(shopper, 'shopper-info')
         # shopper_info.username = 'user_123'
         shopper_info['store-id'] = self.client.default_store_id
         shopper_info['shopper-currency'] = 'GBP'
         shopper_info['locale'] = 'en'
 
+        shopper_info['seller-shopper-id'] = '1234'  # Our user id
+
+        # /shopper/shopper-info/shopper-contact-info
         shopper_contact_info = objectify.SubElement(shopper_info, 'shopper-contact-info')
         shopper_contact_info['first-name'] = 'John'
         shopper_contact_info['last-name'] = 'Doe'
@@ -38,15 +41,37 @@ class Shopper(Resource):
         shopper_contact_info['country'] = 'gb'
         shopper_contact_info['phone'] = '07777777777'
 
-        # payment_info = objectify.SubElement(shopper_info, 'payment-info')
-        # credit_card_info = objectify.SubElement(payment_info, 'credit-card-info')
-        # credit_card = objectify.SubElement(credit_card_info, 'credit-card')
-        # credit_card['encrypted-card-number'] = '$bsjs_0_0_1$E/KfuDDrO2qlQourN27HFVRWKWut4B7djNvPpEua88rj0+Z6wYBkD1Bk7v6A12srVHSgoj8/N9M281C6N3RxwgNT3kWnDeY34nn/gfJ1ZMw1+mRtWKW/GBKm2zumqP+BUnys2MlHJrfq41XqeY0QiPMxBy5pTcXR7gwmxTOy6IEzsNBCfdn9nyZI1XWI3VEZFxkKjse7JUPYXI6z8Xci169I3eIaZfAk/VWMRdEyE4BjWymdedCnI4ZPtLQEXtMcq96Qpg0vwAyYBtR6txlAotaVDIyNXqVzt+/lbdNXnV1Qa3btgBxaeu9WiKpCnjjOedZFsbt3GH8GC+y1+NFkdQ==$3BcXsd1u2zmXJ5bu1JE5dvcclsMTnrBb9lJ8/yUgYdV8pVJ3Df1DrlQouqxBuVLq$oiIo1MykCjuHYHDaY5tqdhguf7WTetosGpQis40SvAU='
-        # credit_card['card-type'] = 'VISA'
-        # credit_card['expiration-month'] = '10'
-        # credit_card['expiration-year'] = '2014'
-        # credit_card['encrypted-security-code'] = '$bsjs_0_0_1$f6obJCCjXf4evUIZVW+QxggcvR0bAO9W8oAOF5TKIu6JbSVDHF34WTS9SeBtsJ5JpXnlkxKCCRF7I8s4812PzlUXi6wCf5MkzwYW0oRsDXdZ/fwJNwn9pWOpPEVVAdfmITOEQsbKgBsb3rAW1tUvVqDo7KF3tVpthEE610ohF3SZ4h9spiA+KNEeIPUDXgfmyQoVWrpofqnBpx0vpKjALnFS/7qMyzQE1F1o7k/dhFxbVyMLUmnUVBQqsgEGi9C3JSskwjioBL9ZpWjv65ss8etXHpvQEz4KaNN3YxxeDNBckGaMLJxUx3AGsr3eOWqi9WJ/rHjfFapnvBMAqoHmsg==$JUGQgq/g9gGsq731irqCwb4A+omDjPOu2uB4PzAsRv8=$+rcTMubbGnNqsCjAY1QSr4NITwTAoiR+woddYptCyX0='
+        # /shopper/shopper-info/payment-info
+        payment_info = objectify.SubElement(shopper_info, 'payment-info')
 
+        # /shopper/shopper-info/payment-info/credit-cards-info
+        credit_cards_info = objectify.SubElement(payment_info, 'credit-cards-info')
+
+        # /shopper/shopper-info/payment-info/credit-cards-info/credit-card-info
+        credit_card_info = objectify.SubElement(credit_cards_info, 'credit-card-info')
+
+        # /shopper/shopper-info/payment-info/credit-cards-info/credit-card-info/billing-contact-info
+        billing_contact_info = objectify.SubElement(credit_card_info, 'billing-contact-info')
+        billing_contact_info['first-name'] = 'John'
+        billing_contact_info['last-name'] = 'Doe'
+        billing_contact_info['email'] = 'test@justyoyo.com'
+        billing_contact_info['address1'] = '(Empty)'
+        billing_contact_info['city'] = '(Empty)'
+        billing_contact_info['zip'] = 'SW5'
+        billing_contact_info['country'] = 'gb'
+        billing_contact_info['phone'] = '07777777777'
+
+        # /shopper/shopper-info/payment-info/credit-cards-info/credit-card-info/credit-card
+        credit_card = objectify.SubElement(credit_card_info, 'credit-card')
+        credit_card['card-type'] = 'VISA'
+        credit_card['expiration-month'] = '10'
+        credit_card['expiration-year'] = '2014'
+        credit_card['card-number'] = '4111111111111111'
+        credit_card['security-code'] = '123'
+        # credit_card['encrypted-card-number'] = r'$bsjs_0_0_1$fcFSIszGd/zeff2ykDptFvIVK5fsLxZpVmH1bujSYBfRwqRGvHbt/ig4BiSaCdnhqvFge/eMDcn6HMrzot4jNDxij70eEDUpoNI/ynhwlE7YEKfUPaax8OayU6SrAh1j5XlLAqHOXi9e0dfouy684uJP8l/nnnSAb6YsBFE+wTiSUJkuTCEbLdIxVPon7pfmPCiWFbq5ApTg2OoyBnHCEazAwNwFYb5rDi2clGZOrZ9t2aTiLMt8lI9eOxGK56B4VbMLEPFx9cC1k28mhl9ngEP8krM1hsmr60PtjbChBl76YGiIIkpO4oB4/B60mJ3yH9m7TCNVf6o+hAuhGPUPFA==$s9Gt7eXUdG3wnsCYXuylw8GEbPuHHtoc82wuDLlawiYj9Cz97C7X6VJ8Lr9SpPcX$0lkNKEuDWG6d9GVf3TWykyEePSfgAdqPPLgCV2JW7bQ='
+        # credit_card['encrypted-security-code'] = r'$bsjs_0_0_1$WIZtg12e6eDuZ9lVIypJ5KZ0l81pHaSuIHvsavNowrcnvhmPzVGasjWMi9MxEAUPjoA+t/PKLTu1zuclcQQU9Qrrd/inOyb4JQdzu8V0f6bnl3b6r8n20c8hTY/SxDc2VTQUnprD4ue9xanHX+EeTDxBMAr7+EI9DvF6v/wGpJUzxi9EbxIA1I9yPtbXP+CnXlRCwOkIUxA2G4u178lSkEIN+2RO190be1imguBVuPh5V29/CeOjujk+3Wf6XcFjIbt5yN7WFYsrrY7XVWyTu9LXTto3HWihUAJXSt6y9Q3WuZ6cL+cYsqs6OmupmyPFsiStn7cWYJxcrst9/XsE1A==$J6AeBXHNoDQ84rq/1yNtZX5iPbbXlXBz0LxK3Vx8JZA=$lBpanoq9MuGmI7N/cpiVoO/ueF4JZm5ofrDVCj9Wvw0='
+
+        # /shopper/web-info
         web_info = objectify.SubElement(shopper, 'web-info')
         web_info['ip'] = '1.1.1.1'
 
