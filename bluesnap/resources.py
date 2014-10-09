@@ -4,6 +4,7 @@ from lxml import objectify, etree
 from lxml.builder import ElementMaker
 import requests
 
+from . import models
 from .client import default as default_client
 
 
@@ -16,7 +17,11 @@ class Resource(object):
 class Shopper(Resource):
     path = '/services/2/shoppers'
 
-    def create(self):
+    def create(self, contact_info, credit_card):
+        """
+        :type contact_info : models.ContactInfo
+        :type credit_card : models.PlaintextCreditCard or models.EncryptedCreditCard
+        """
         E = ElementMaker(namespace=self.client.NAMESPACE,
                          nsmap={None: self.client.NAMESPACE})
 
@@ -51,42 +56,48 @@ class Shopper(Resource):
         IP = E.ip
         USER_AGENT = getattr(E, 'user-agent')
 
-        shopper = SHOPPER(
+        credit_card_element = CREDIT_CARD(
+            CARD_TYPE(credit_card.card_type),
+            EXPIRATION_MONTH(credit_card.expiration_month),
+            EXPIRATION_YEAR(credit_card.expiration_year)
+        )
+        if isinstance(credit_card, models.PlaintextCreditCard):
+            credit_card_element.append(CARD_NUMBER(credit_card.card_number))
+            credit_card_element.append(SECURITY_CODE(credit_card.security_code))
+        elif isinstance(credit_card, models.EncryptedCreditCard):
+            credit_card_element.append(ENCRYPTED_CARD_NUMBER(credit_card.encrypted_card_number))
+            credit_card_element.append(ENCRYPTED_SECURITY_CODE(credit_card.encrypted_security_code))
+
+        shopper_element = SHOPPER(
             SHOPPER_INFO(
                 STORE_ID(self.client.default_store_id),
                 SHOPPER_CURRENCY('GBP'),
                 LOCALE('en'),
                 # SELLER_SHOPPER_ID('1234'),
                 SHOPPER_CONTACT_INFO(
-                    FIRST_NAME('John'),
-                    LAST_NAME('Doe'),
-                    EMAIL('test@justyoyo.com'),
-                    ADDRESS1('(Empty)'),
-                    CITY('(Empty)'),
-                    ZIP('SW5'),
-                    COUNTRY('gb'),
-                    PHONE('07777777777')
+                    FIRST_NAME(contact_info.first_name),
+                    LAST_NAME(contact_info.last_name),
+                    EMAIL(contact_info.email),
+                    ADDRESS1(contact_info.address_1),
+                    CITY(contact_info.city),
+                    ZIP(contact_info.zip),
+                    COUNTRY(contact_info.country),
+                    PHONE(contact_info.phone)
                 ),
                 PAYMENT_INFO(
                     CREDIT_CARDS_INFO(
                         CREDIT_CARD_INFO(
                             BILLING_CONTACT_INFO(
-                                FIRST_NAME('John'),
-                                LAST_NAME('Doe'),
-                                EMAIL('test@justyoyo.com'),
-                                ADDRESS1('(Empty)'),
-                                CITY('(Empty)'),
-                                ZIP('SW5'),
-                                COUNTRY('gb'),
-                                PHONE('07777777777')
+                                FIRST_NAME(contact_info.first_name),
+                                LAST_NAME(contact_info.last_name),
+                                EMAIL(contact_info.email),
+                                ADDRESS1(contact_info.address_1),
+                                CITY(contact_info.city),
+                                ZIP(contact_info.zip),
+                                COUNTRY(contact_info.country),
+                                PHONE(contact_info.phone)
                             ),
-                            CREDIT_CARD(
-                                CARD_TYPE('VISA'),
-                                EXPIRATION_MONTH('10'),
-                                EXPIRATION_YEAR('2015'),
-                                CARD_NUMBER('4111111111111111'),
-                                SECURITY_CODE('111')
-                            )
+                            credit_card_element
                         )
                     )
                 )
@@ -162,7 +173,7 @@ class Shopper(Resource):
         # etree.replace(self.create_root_element('shopper'))
         # shopper.namespaces = self.client.XML_NAMESPACES
 
-        xml = etree.tostring(shopper, pretty_print=True)
+        xml = etree.tostring(shopper_element, pretty_print=True)
         print xml
 
         # shopper_contact_info = shopper_schema.shopper_contact_info(
@@ -199,8 +210,8 @@ class Shopper(Resource):
             new_shopper_url = urlparse(r.headers['location'])
 
             r = self.client.request('GET', new_shopper_url.path)
-            shopper = etree.XML(r.content)
-            print etree.tostring(shopper, pretty_print=True)
+            shopper_element = etree.XML(r.content)
+            print etree.tostring(shopper_element, pretty_print=True)
         else:
             print 'here', r.text
 
@@ -236,6 +247,4 @@ class Order(Resource):
     path = '/services/2/orders'
 
     def create(self):
-        # /order
-        order = self.create_root_element('order')
-
+        pass
