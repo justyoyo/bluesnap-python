@@ -3,6 +3,13 @@ import datetime
 now = datetime.datetime.now()
 future = now + datetime.timedelta(days=1)
 
+SANDBOX_CLIENT_CONFIG = {
+    'env': 'sandbox',
+    'username': 'API_14127729102161320867365',
+    'password': 'JustYoyo1',
+    'default_store_id': '13945'
+}
+
 # Dummy cards taken from
 # http://home.bluesnap.com/integrationguide/default.htm#WordManual/Working_with_Sandbox_Testing.htm
 
