@@ -20,7 +20,7 @@ class Shopper(Resource):
     def create(self, contact_info, credit_card):
         """
         :type contact_info : models.ContactInfo
-        :type credit_card : models.PlainCreditCard or models.EncryptedCreditCard
+        :type credit_card : models.AbstractCreditCard
         """
         E = self.client.E
 
@@ -43,29 +43,9 @@ class Shopper(Resource):
         CREDIT_CARDS_INFO = getattr(E, 'credit-cards-info')
         CREDIT_CARD_INFO = getattr(E, 'credit-card-info')
         BILLING_CONTACT_INFO = getattr(E, 'billing-contact-info')
-        CREDIT_CARD = getattr(E, 'credit-card')
-        CARD_TYPE = getattr(E, 'card-type')
-        EXPIRATION_MONTH = getattr(E, 'expiration-month')
-        EXPIRATION_YEAR = getattr(E, 'expiration-year')
-        CARD_NUMBER = getattr(E, 'card-number')
-        SECURITY_CODE = getattr(E, 'security-code')
-        ENCRYPTED_CARD_NUMBER = getattr(E, 'encrypted-card-number')
-        ENCRYPTED_SECURITY_CODE = getattr(E, 'encrypted-security-code')
         WEB_INFO = getattr(E, 'web-info')
         IP = E.ip
         USER_AGENT = getattr(E, 'user-agent')
-
-        credit_card_element = CREDIT_CARD(
-            CARD_TYPE(credit_card.card_type),
-            EXPIRATION_MONTH(credit_card.expiration_month),
-            EXPIRATION_YEAR(credit_card.expiration_year)
-        )
-        if isinstance(credit_card, models.PlainCreditCard):
-            credit_card_element.append(CARD_NUMBER(credit_card.card_number))
-            credit_card_element.append(SECURITY_CODE(credit_card.security_code))
-        elif isinstance(credit_card, models.EncryptedCreditCard):
-            credit_card_element.append(ENCRYPTED_CARD_NUMBER(credit_card.encrypted_card_number))
-            credit_card_element.append(ENCRYPTED_SECURITY_CODE(credit_card.encrypted_security_code))
 
         shopper_element = SHOPPER(
             SHOPPER_INFO(
@@ -96,7 +76,7 @@ class Shopper(Resource):
                                 COUNTRY(contact_info.country),
                                 PHONE(contact_info.phone)
                             ),
-                            credit_card_element
+                            credit_card.to_xml()
                         )
                     )
                 )

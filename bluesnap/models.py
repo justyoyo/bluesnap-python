@@ -71,6 +71,19 @@ class EncryptedCreditCard(AbstractCreditCard):
         self.encrypted_security_code = encrypted_security_code
 
     def to_xml(self):
+        """
+        Converts EncryptedCreditCard object to XML object:
+
+        <credit-card>
+            <encrypted-card-number>...</card-number>
+            <card-type>VISA</card-type>
+            <expiration-month>10</expiration-month>
+            <expiration-year>2014</expiration-year>
+            <encrypted-security-code>....</security-code>
+        </credit-card>
+
+        :return: lxml.etree._Element
+        """
         E = self.client.E
 
         return getattr(E, 'credit-card')(
