@@ -43,9 +43,6 @@ class Shopper(Resource):
         CREDIT_CARDS_INFO = getattr(E, 'credit-cards-info')
         CREDIT_CARD_INFO = getattr(E, 'credit-card-info')
         BILLING_CONTACT_INFO = getattr(E, 'billing-contact-info')
-        WEB_INFO = getattr(E, 'web-info')
-        IP = E.ip
-        USER_AGENT = getattr(E, 'user-agent')
 
         shopper_element = SHOPPER(
             SHOPPER_INFO(
@@ -81,10 +78,7 @@ class Shopper(Resource):
                     )
                 )
             ),
-            WEB_INFO(
-                # IP('1.1.1.1'),
-                USER_AGENT(self.client.user_agent)
-            )
+            models.WebInfo().to_xml()
         )
 
         # /shopper
@@ -232,9 +226,6 @@ class Order(Resource):
         ORDER = E.order
         ORDERING_SHOPPER = getattr(E, 'ordering-shopper')
         SHOPPER_ID = getattr(E, 'shopper-id')
-        WEB_INFO = getattr(E, 'web-info')
-        IP = E.ip
-        USER_AGENT = getattr(E, 'user-agent')
 
         CART = E.cart
         CART_ITEM = getattr(E, 'cart-item')
@@ -250,10 +241,7 @@ class Order(Resource):
         order_element = ORDER(
             ORDERING_SHOPPER(
                 SHOPPER_ID('19572924'),
-                WEB_INFO(
-                    IP('1.1.1.1'),
-                    USER_AGENT(self.client.user_agent)
-                )
+                models.WebInfo().to_xml()
             ),
             CART(
                 CART_ITEM(
