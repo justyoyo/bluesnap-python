@@ -34,7 +34,7 @@ class PlainCreditCardTestCase(TestCase):
             self.assertEqual(self.xml.find(NAMESPACE_PREFIX + xml_key).text, str(self.card[dict_key]))
 
 
-class EncryptedCreditCard(TestCase):
+class EncryptedCreditCardTestCase(TestCase):
     model = models.EncryptedCreditCard
 
     def setUp(self):
@@ -67,3 +67,24 @@ class EncryptedCreditCard(TestCase):
 
             self.assertIsNotNone(element, 'Cannot find element <{}/>'.format(NAMESPACE_PREFIX + xml_key))
             self.assertEqual(element.text, str(self.card[dict_key]))
+
+
+class WebInfoTestCase(TestCase):
+    model = models.WebInfo
+
+    def setUp(self):
+        self.instance = self.model()
+        self.xml = self.instance.to_xml()
+
+    def test_to_xml_returns_correct_schema(self):
+    # Validate XML schema
+        get_xml_schema('web-info.xsd').assertValid(self.xml)
+
+    def test_to_xml_sets_correct_values(self):
+        # Validate values being set correctly
+        for xml_key, dict_key in [('ip', 'ip'),
+                                  ('user-agent', 'user_agent')]:
+            element = self.xml.find(NAMESPACE_PREFIX + xml_key)
+
+            self.assertIsNotNone(element, 'Cannot find element <{}/>'.format(NAMESPACE_PREFIX + xml_key))
+            self.assertEqual(element.text, getattr(self.instance, dict_key))

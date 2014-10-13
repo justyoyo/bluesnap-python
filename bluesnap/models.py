@@ -1,6 +1,10 @@
 from collections import namedtuple
+import platform
+
+import requests
 
 from .client import default as default_client
+from .version import __version__
 
 
 class Model(object):
@@ -94,6 +98,43 @@ class EncryptedCreditCard(AbstractCreditCard):
             getattr(E, 'encrypted-security-code')(self.encrypted_security_code)
         )
 
+
+class WebInfo(Model):
+    def __init__(self, ip=None, user_agent=None, client=None):
+        super(WebInfo, self).__init__(
+            client=client
+        )
+
+        # Set dummy IP for now
+        self.ip = ip or '0.0.0.0'
+        self.user_agent = user_agent or self.default_user_agent
+
+    @property
+    def default_user_agent(self):
+        """
+        Generate default user agent based on library repo name, Python version and requests version
+        :return: string
+        """
+        library_versions = 'requests {}; python {}'.format(requests.__version__, platform.version())
+        return 'justyoyo/bluesnap-python {} ({})'.format(__version__, library_versions)
+
+    def to_xml(self):
+        """
+        Converts WebInfo object to XML object:
+
+        <web-info>
+            <ip>0.0.0.0</ip>
+            <user-agent></user-agent>
+        </web-info>
+
+        :return: lxml.etree._Element
+        """
+        E = self.client.E
+
+        return getattr(E, 'web-info')(
+            E.ip(self.ip),
+            getattr(E, 'user-agent')(self.user_agent)
+        )
 
 ContactInfo = namedtuple('ContactInfo',
                          ['first_name', 'last_name', 'email', 'address_1', 'city', 'zip', 'country', 'phone'])
