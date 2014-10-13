@@ -22,8 +22,7 @@ class Shopper(Resource):
         :type contact_info : models.ContactInfo
         :type credit_card : models.PlainCreditCard or models.EncryptedCreditCard
         """
-        E = ElementMaker(namespace=self.client.NAMESPACE,
-                         nsmap={None: self.client.NAMESPACE})
+        E = self.client.E
 
         SHOPPER = E.shopper
         SHOPPER_INFO = getattr(E, 'shopper-info')
@@ -103,7 +102,7 @@ class Shopper(Resource):
                 )
             ),
             WEB_INFO(
-                IP('1.1.1.1'),
+                # IP('1.1.1.1'),
                 USER_AGENT(self.client.user_agent)
             )
         )
@@ -209,12 +208,12 @@ class Shopper(Resource):
         if r.status_code == requests.codes.created:
             new_shopper_url = urlparse(r.headers['location'])
 
+            print new_shopper_url
+
             r = self.client.request('GET', new_shopper_url.path)
             shopper_element = etree.XML(r.content)
             print etree.tostring(shopper_element, pretty_print=True)
         else:
-            print 'here', r.text
-
             messages = etree.XML(r.content)
 
             for message in messages:
@@ -240,11 +239,70 @@ class Shopper(Resource):
             #
             # print messages_schema.CreateFromDocument(r.text)
 
-        raise Exception
+        # raise Exception
 
 
 class Order(Resource):
     path = '/services/2/orders'
 
     def create(self):
-        pass
+        E = ElementMaker(namespace=self.client.NAMESPACE,
+                         nsmap={None: self.client.NAMESPACE})
+
+        ORDER = E.order
+        ORDERING_SHOPPER = getattr(E, 'ordering-shopper')
+        SHOPPER_ID = getattr(E, 'shopper-id')
+        WEB_INFO = getattr(E, 'web-info')
+        IP = E.ip
+        USER_AGENT = getattr(E, 'user-agent')
+
+        CART = E.cart
+        CART_ITEM = getattr(E, 'cart-item')
+        SKU = E.sku
+        SKU_ID = getattr(E, 'sku-id')
+        SKU_CHARGE_PRICE = getattr(E, 'sku-charge-price')
+        CHARGE_TYPE = getattr(E, 'charge-type')
+        AMOUNT = E.amount
+        CURRENCY = E.currency
+        QUANTITY = E.quantity
+        EXPECTED_TOTAL_PRICE = getattr(E, 'expected-total-price')
+
+        order_element = ORDER(
+            ORDERING_SHOPPER(
+                SHOPPER_ID('19572924'),
+                WEB_INFO(
+                    IP('1.1.1.1'),
+                    USER_AGENT(self.client.user_agent)
+                )
+            ),
+            CART(
+                CART_ITEM(
+                    SKU(
+                        SKU_ID('2152476'),
+                        SKU_CHARGE_PRICE(
+                            CHARGE_TYPE('initial'),
+                            AMOUNT('1.00'),
+                            CURRENCY('GBP')
+                        )
+                    ),
+                    QUANTITY('1'),
+                ),
+            ),
+            EXPECTED_TOTAL_PRICE(
+                AMOUNT('1.00'),
+                CURRENCY('GBP')
+            )
+        )
+
+        xml = etree.tostring(order_element, pretty_print=True)
+        print xml
+
+        r = self.client.request('POST', self.path, data=xml)
+
+        if r.status_code == requests.codes.created:
+            order_element = etree.XML(r.content)
+            print etree.tostring(order_element, pretty_print=True)
+        else:
+            print r.body
+            messages = etree.XML(r.content)
+            print etree.tostring(messages, pretty_print=True)

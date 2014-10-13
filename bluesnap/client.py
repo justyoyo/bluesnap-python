@@ -1,5 +1,6 @@
 import platform
 
+from lxml.builder import ElementMaker
 from requests.auth import HTTPBasicAuth
 import requests
 
@@ -31,6 +32,10 @@ class Client(object):
         self.password = password
         self.default_store_id = default_store_id
         self.seller_id = seller_id
+
+        # ElementMaker for XML builder
+        self.E = ElementMaker(namespace=self.NAMESPACE,
+                              nsmap={None: self.NAMESPACE})
 
     @property
     def endpoint_url(self):
