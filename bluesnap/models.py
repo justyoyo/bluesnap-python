@@ -8,14 +8,28 @@ class Model(object):
         self.client = client or default_client()
         """:type : .client.Client"""
 
+    def to_xml(self):
+        raise NotImplementedError('{}.to_xml(self) is not implemented'.format(self.__class__.__name__))
 
-class PlainCreditCard(Model):
-    def __init__(self, card_type, expiration_month, expiration_year, card_number, security_code, client=None):
-        super(PlainCreditCard, self).__init__(client)
+
+class AbstractCreditCard(Model):
+    def __init__(self, card_type, expiration_month, expiration_year, client=None):
+        super(AbstractCreditCard, self).__init__(
+            client=client)
 
         self.card_type = card_type
         self.expiration_month = expiration_month
         self.expiration_year = expiration_year
+
+
+class PlainCreditCard(AbstractCreditCard):
+    def __init__(self, card_type, expiration_month, expiration_year, card_number, security_code, client=None):
+        super(PlainCreditCard, self).__init__(
+            card_type=card_type,
+            expiration_month=expiration_month,
+            expiration_year=expiration_year,
+            client=client)
+
         self.card_number = card_number
         self.security_code = security_code
 
@@ -44,9 +58,29 @@ class PlainCreditCard(Model):
         )
 
 
+class EncryptedCreditCard(AbstractCreditCard):
+    def __init__(self, card_type, expiration_month, expiration_year, encrypted_card_number, encrypted_security_code,
+                 client=None):
+        super(EncryptedCreditCard, self).__init__(
+            card_type=card_type,
+            expiration_month=expiration_month,
+            expiration_year=expiration_year,
+            client=client)
+
+        self.encrypted_card_number = encrypted_card_number
+        self.encrypted_security_code = encrypted_security_code
+
+    def to_xml(self):
+        E = self.client.E
+
+        return getattr(E, 'credit-card')(
+            getattr(E, 'encrypted-card-number')(self.encrypted_card_number),
+            getattr(E, 'card-type')(self.card_type),
+            getattr(E, 'expiration-month')(str(self.expiration_month)),
+            getattr(E, 'expiration-year')(str(self.expiration_year)),
+            getattr(E, 'encrypted-security-code')(self.encrypted_security_code)
+        )
+
+
 ContactInfo = namedtuple('ContactInfo',
                          ['first_name', 'last_name', 'email', 'address_1', 'city', 'zip', 'country', 'phone'])
-
-EncryptedCreditCard = namedtuple('EncryptedCreditCard',
-                                 ['card_type', 'expiration_month', 'expiration_year', 'encrypted_card_number',
-                                  'encrypted_security_code'])

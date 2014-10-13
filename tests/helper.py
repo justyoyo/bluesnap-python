@@ -9,6 +9,8 @@ future = now + datetime.timedelta(days=1)
 
 __path__ = os.path.dirname(os.path.realpath(__file__))
 
+NAMESPACE_PREFIX = '{http://ws.plimus.com}'
+
 SANDBOX_CLIENT_CONFIG = {
     'env': 'sandbox',
     'username': 'API_14127729102161320867365',
