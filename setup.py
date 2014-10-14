@@ -19,7 +19,8 @@ setup(
     packages=find_packages(),
     install_requires=[
         'lxml==3.4.0',
-        'requests==2.4.3'
+        'requests==2.4.3',
+        'xmltodict==0.9.0'
     ],
     test_suite='nose.collector'
 )
