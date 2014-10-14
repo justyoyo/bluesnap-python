@@ -59,5 +59,10 @@ DUMMY_CARDS = (
 )
 
 
+def configure_client():
+    from bluesnap import client
+    client.configure(**SANDBOX_CLIENT_CONFIG)
+
+
 def get_xml_schema(file_name):
     return etree.XMLSchema(etree.parse(os.path.join(__path__, 'schemas', file_name)))

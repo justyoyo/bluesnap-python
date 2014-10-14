@@ -100,13 +100,13 @@ class EncryptedCreditCard(AbstractCreditCard):
 
 
 class WebInfo(Model):
-    def __init__(self, ip=None, user_agent=None, client=None):
+    def __init__(self, ip=None, remote_host=None, user_agent=None, client=None):
         super(WebInfo, self).__init__(
             client=client
         )
 
-        # Set dummy IP for now
         self.ip = ip or '0.0.0.0'
+        self.remote_host = remote_host or 'localhost'
         self.user_agent = user_agent or self.default_user_agent
 
     @property
@@ -124,6 +124,7 @@ class WebInfo(Model):
 
         <web-info>
             <ip>0.0.0.0</ip>
+            <remote-host>localhost</remote-host>
             <user-agent></user-agent>
         </web-info>
 
@@ -133,8 +134,10 @@ class WebInfo(Model):
 
         return getattr(E, 'web-info')(
             E.ip(self.ip),
+            getattr(E, 'remote-host')(self.remote_host),
             getattr(E, 'user-agent')(self.user_agent)
         )
+
 
 ContactInfo = namedtuple('ContactInfo',
                          ['first_name', 'last_name', 'email', 'address_1', 'city', 'zip', 'country', 'phone'])

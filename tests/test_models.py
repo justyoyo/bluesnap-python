@@ -1,7 +1,10 @@
 from unittest import TestCase
 
 from bluesnap import models
-from helper import NAMESPACE_PREFIX, DUMMY_CARD_VISA, get_xml_schema
+from helper import NAMESPACE_PREFIX, DUMMY_CARD_VISA, configure_client, get_xml_schema
+
+
+configure_client()
 
 
 class PlainCreditCardTestCase(TestCase):
@@ -83,6 +86,7 @@ class WebInfoTestCase(TestCase):
     def test_to_xml_sets_correct_values(self):
         # Validate values being set correctly
         for xml_key, dict_key in [('ip', 'ip'),
+                                  ('remote-host', 'remote_host'),
                                   ('user-agent', 'user_agent')]:
             element = self.xml.find(NAMESPACE_PREFIX + xml_key)
 

@@ -1,15 +1,17 @@
 import unittest
 
-from bluesnap.client import configure as configure_client
 from bluesnap.models import ContactInfo, PlainCreditCard
 from bluesnap.resources import Order, Shopper
 
-from helper import SANDBOX_CLIENT_CONFIG
+from helper import configure_client
+
+
+configure_client()
 
 
 class ShopperTestCase(unittest.TestCase):
     def setUp(self):
-        configure_client(**SANDBOX_CLIENT_CONFIG)
+        pass
 
     def test_shopper_xml(self):
         contact_info = ContactInfo(
