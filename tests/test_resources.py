@@ -3,7 +3,7 @@ import unittest
 from bluesnap.models import ContactInfo, PlainCreditCard
 from bluesnap.resources import Order, Shopper
 
-from helper import configure_client
+from helper import configure_client, DUMMY_CARD_VISA
 
 
 configure_client()
@@ -24,11 +24,11 @@ class ShopperTestCase(unittest.TestCase):
         )
 
         credit_card = PlainCreditCard(
-            card_type='VISA',
-            expiration_month='12',
-            expiration_year='2015',
-            card_number='4111111111111111',
-            security_code='111'
+            card_type=DUMMY_CARD_VISA['card_type'],
+            expiration_month=DUMMY_CARD_VISA['expiration_month'],
+            expiration_year=DUMMY_CARD_VISA['expiration_year'],
+            card_number=DUMMY_CARD_VISA['card_number'],
+            security_code=DUMMY_CARD_VISA['security_code']
         )
 
         shopper = Shopper()
