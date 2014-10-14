@@ -195,3 +195,11 @@ class ContactInfo(Model):
             E.country(self.country),
             E.phone(self.phone)
         )
+
+
+class ShopperContactInfo(ContactInfo):
+    ELEMENT_NAME = 'shopper'
+
+
+class BillingContactInfo(ContactInfo):
+    ELEMENT_NAME = 'billing'
