@@ -1,4 +1,5 @@
 from urlparse import urlparse
+import re
 
 from lxml import objectify, etree
 from lxml.builder import ElementMaker
@@ -16,6 +17,8 @@ class Resource(object):
 
 class Shopper(Resource):
     path = '/services/2/shoppers'
+    new_shopper_path = path + '/{shopper_id}'
+    shopper_id_path_pattern = re.compile('{}/(\d+)'.format(path))  # /services/2/shoppers/(\d+)
 
     def create(self, contact_info, credit_card):
         """
@@ -46,20 +49,20 @@ class Shopper(Resource):
         )
 
         xml = etree.tostring(shopper_element, pretty_print=True)
+
         print xml
 
-        r = self.client.request('POST', self.path, data=xml)
+        response = self.client.request('POST', self.path, data=xml)
 
-        if r.status_code == requests.codes.created:
-            new_shopper_url = urlparse(r.headers['location'])
+        if response.status_code == requests.codes.created:
+            new_shopper_url = urlparse(response.headers['location'])
 
-            print new_shopper_url
+            shopper_id = self.shopper_id_path_pattern.match(new_shopper_url.path).group(1)
 
-            r = self.client.request('GET', new_shopper_url.path)
-            shopper_element = etree.XML(r.content)
-            print etree.tostring(shopper_element, pretty_print=True)
+            return self.find_by_shopper_id(int(shopper_id))
         else:
-            messages = etree.XML(r.content)
+            # TODO parse message
+            messages = etree.XML(response.content)
 
             for message in messages:
                 print 'ok'
@@ -85,6 +88,16 @@ class Shopper(Resource):
             # print messages_schema.CreateFromDocument(r.text)
 
         # raise Exception
+
+    def find_by_shopper_id(self, shopper_id):
+        response = self.client.request('GET', self.new_shopper_path.format(shopper_id=shopper_id))
+
+        shopper_element = etree.XML(response.content)
+        print etree.tostring(shopper_element, pretty_print=True)
+
+    def find_by_seller_shopper_id(self, seller_shopper_id):
+        # TODO
+        pass
 
 
 class Order(Resource):
