@@ -52,11 +52,10 @@ class Shopper(Resource):
             models.WebInfo().to_xml()
         )
 
-        xml = etree.tostring(shopper_element, pretty_print=True)
+        # xml = etree.tostring(shopper_element, pretty_print=True)
+        # print xml
 
-        print xml
-
-        response = self.client.request('POST', self.path, data=xml)
+        response = self.client.request('POST', self.path, data=etree.tostring(shopper_element))
 
         if response.status_code == requests.codes.created:
             new_shopper_url = urlparse(response.headers['location'])
@@ -135,15 +134,7 @@ class Order(Resource):
             )
         )
 
-        xml = etree.tostring(order_element, pretty_print=True)
-        print xml
+        response = self.client.request('POST', self.path, data=etree.tostring(order_element))
 
-        r = self.client.request('POST', self.path, data=xml)
-
-        if r.status_code == requests.codes.created:
-            order_element = etree.XML(r.content)
-            print etree.tostring(order_element, pretty_print=True)
-        else:
-            print r.body
-            messages = etree.XML(r.content)
-            print etree.tostring(messages, pretty_print=True)
+        if response.status_code == requests.codes.created:
+            return xmltodict.parse(response.content).get(u'order')
