@@ -11,6 +11,9 @@ from .client import default as default_client
 
 
 class Resource(object):
+    class DoesNotExist(Exception):
+        pass
+
     def __init__(self, client=None):
         self.client = client or default_client()
         """:type : .client.Client"""
@@ -20,9 +23,6 @@ class Shopper(Resource):
     path = '/services/2/shoppers'
     new_shopper_path = path + '/{shopper_id}'
     shopper_id_path_pattern = re.compile('{}/(\d+)'.format(path))  # /services/2/shoppers/(\d+)
-
-    class DoesNotExist(Exception):
-        pass
 
     def create(self, contact_info, credit_card):
         """
