@@ -159,18 +159,11 @@ class ContactInfo(Model):
         self.country = country or self.NONE_PLACEHOLDER
         self.phone = phone or self.NONE_PLACEHOLDER
 
-    @property
-    def xml_element_name(self):
-        if self.ELEMENT_NAME:
-            return '{}-contact-info'.format(self.ELEMENT_NAME)
-        else:
-            return 'contact-info'
-
-    def to_xml(self):
+    def to_xml(self, element_name=None):
         """
         Converts WebInfo object to XML object:
 
-        <{xml_element_name}-contact-info>
+        <{element_name-}contact-info>
             <first-name>John</first-name>
             <last-name>Doe</last-name>
             <email>dev@justyoyo.com</email>
@@ -179,13 +172,18 @@ class ContactInfo(Model):
             <zip>SW5</zip>
             <country>gb</country>
             <phone>07777777777</phone>
-        </{xml_element_name}-contact-info>
+        </{element_name-}contact-info>
 
         :return: lxml.etree._Element
         """
         E = self.client.E
 
-        return getattr(E, self.xml_element_name)(
+        if element_name:
+            element_name += '-contact-info'
+        else:
+            element_name = 'contact-info'
+
+        return getattr(E, element_name)(
             getattr(E, 'first-name')(self.first_name),
             getattr(E, 'last-name')(self.last_name),
             E.email(self.email),
@@ -195,11 +193,3 @@ class ContactInfo(Model):
             E.country(self.country),
             E.phone(self.phone)
         )
-
-
-class ShopperContactInfo(ContactInfo):
-    ELEMENT_NAME = 'shopper'
-
-
-class BillingContactInfo(ContactInfo):
-    ELEMENT_NAME = 'billing'

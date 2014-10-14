@@ -32,11 +32,11 @@ class Shopper(Resource):
                 getattr(E, 'shopper-currency')('GBP'),
                 E.locale('en'),
                 # getattr(E, 'seller-shopper-id')('1234'),
-                models.ShopperContactInfo.to_xml(contact_info),
+                contact_info.to_xml('shopper'),
                 getattr(E, 'payment-info')(
                     getattr(E, 'credit-cards-info')(
                         getattr(E, 'credit-card-info')(
-                            models.BillingContactInfo.to_xml(contact_info),
+                            contact_info.to_xml('billing'),
                             credit_card.to_xml()
                         )
                     )
