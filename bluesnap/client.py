@@ -47,7 +47,12 @@ class Client(object):
 
     def request(self, method, path, data=None):
         """
-        :type method: str
+        API request method
+
+        :param method: HTTP method
+        :param path: URL path
+        :param data: XML data
+        :return:
         """
         headers = {
             'content-type': 'application/xml',  # Must be XML or API will complain
@@ -64,17 +69,20 @@ class Client(object):
 
         body = self._process_response_body(response)
 
-        return body
+        return response, body
 
     def _process_response_body(self, response):
-        try:
-            body = xmltodict.parse(response.content)
-        except ExpatError:
-            raise APIError(
-                'Cannot parse XML body from API: {body}'
-                '(HTTP status code was {status_code})'.format(
-                    body=response.body,
-                    status_code=response.status_code))
+        body = None
+
+        if response.content:  # There's content, parse it as XML
+            try:
+                body = xmltodict.parse(response.content)
+            except ExpatError:
+                raise APIError(
+                    'Cannot parse XML body from API: {body}'
+                    '(HTTP status code was {status_code})'.format(
+                        body=response.body,
+                        status_code=response.status_code))
 
         if not (200 <= response.status_code < 300):
             self._handle_api_error(response, body)
@@ -84,7 +92,7 @@ class Client(object):
     # noinspection PyMethodMayBeStatic
     def _handle_api_error(self, response, body):
         try:
-            messages = response['messages']['message']
+            messages = body['messages']['message']
         except (KeyError, ValueError):
             raise APIError(
                 'Invalid messages object in response from API: {body}'

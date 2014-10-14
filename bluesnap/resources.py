@@ -18,6 +18,10 @@ class Resource(object):
         self.client = client or default_client()
         """:type : .client.Client"""
 
+    def request(self, method, path, data=None):
+        response, body = self.client.request(method, path, data)
+        return response, body
+
 
 class Shopper(Resource):
     path = '/services/2/shoppers'
@@ -52,17 +56,12 @@ class Shopper(Resource):
             models.WebInfo().to_xml()
         )
 
-        # xml = etree.tostring(shopper_element, pretty_print=True)
-        # print xml
+        response, body = self.request('POST', self.path, data=etree.tostring(shopper_element))
 
-        response = self.client.request('POST', self.path, data=etree.tostring(shopper_element))
+        new_shopper_url = urlparse(response.headers['location'])
 
-        if response.status_code == requests.codes.created:
-            new_shopper_url = urlparse(response.headers['location'])
-
-            shopper_id = self.shopper_id_path_pattern.match(new_shopper_url.path).group(1)
-
-            return self.find_by_shopper_id(int(shopper_id))
+        shopper_id = self.shopper_id_path_pattern.match(new_shopper_url.path).group(1)
+        return self.find_by_shopper_id(int(shopper_id))
 
     def find_by_shopper_id(self, shopper_id):
         """
@@ -70,12 +69,8 @@ class Shopper(Resource):
         :param shopper_id: BlueSnap shopper id
         :return: shopper dictionary
         """
-        response = self.client.request('GET', self.new_shopper_path.format(shopper_id=shopper_id))
-
-        if response.status_code == requests.codes.ok:
-            return xmltodict.parse(response.content).get(u'shopper')
-        else:
-            raise self.DoesNotExist('Shopper with id {} does not exist')
+        response, body = self.request('GET', self.new_shopper_path.format(shopper_id=shopper_id))
+        return body['shopper']
 
     def find_by_seller_shopper_id(self, seller_shopper_id):
         """
@@ -134,7 +129,5 @@ class Order(Resource):
             )
         )
 
-        response = self.client.request('POST', self.path, data=etree.tostring(order_element))
-
-        if response.status_code == requests.codes.created:
-            return xmltodict.parse(response.content).get(u'order')
+        response, body = self.request('POST', self.path, data=etree.tostring(order_element))
+        return body['order']
