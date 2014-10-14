@@ -1,10 +1,8 @@
-import platform
-
 from lxml.builder import ElementMaker
 from requests.auth import HTTPBasicAuth
 import requests
 
-from .version import __version__
+from exceptions import ImproperlyConfigured
 
 
 class Client(object):
@@ -80,14 +78,7 @@ def default():
     global __client__
 
     if __client__ is None:
-        # TODO refactor
-        __client__ = Client(
-            env='sandbox',
-            username='username',
-            password='password',
-            default_store_id='1',
-            seller_id='1'
-        )
+        raise ImproperlyConfigured('BlueSnap client not configured yet. Please call bluesnap.client.configure().')
 
     return __client__
 
@@ -95,5 +86,7 @@ def default():
 def configure(**config):
     """:rtype : Client"""
     global __client__
+
     __client__ = Client(**config)
+
     return __client__

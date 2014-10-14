@@ -1,1 +1,2 @@
-__author__ = 'jianyuanlee'
+class ImproperlyConfigured(Exception):
+    pass
