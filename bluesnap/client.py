@@ -4,7 +4,7 @@ from requests.auth import HTTPBasicAuth
 import requests
 import xmltodict
 
-from exceptions import ImproperlyConfigured, ValidationError
+from exceptions import ImproperlyConfigured, ValidationError, APIError
 
 
 class Client(object):
@@ -62,16 +62,38 @@ class Client(object):
                            auth=self.http_basic_auth,
                            data=data)
 
-        if response.status_code in (requests.codes.ok, requests.codes.created):  # Everything is okay
-            return response
-        elif response.status_code == requests.codes.bad:  # Something bad happened
-            try:
-                messages = xmltodict.parse(response.content).get(u'messages', {}).get(u'message', [])
-            except ExpatError:
-                messages = response.body
-            raise ValidationError(messages)
-        else:  # Don't know how to handle this, so raise an error
-            response.raise_for_status()
+        body = self._process_response_body(response)
+
+        return body
+
+    def _process_response_body(self, response):
+        try:
+            body = xmltodict.parse(response.content)
+        except ExpatError:
+            raise APIError(
+                'Cannot parse XML body from API: {body}'
+                '(HTTP status code was {status_code})'.format(
+                    body=response.body,
+                    status_code=response.status_code))
+
+        if not (200 <= response.status_code < 300):
+            self._handle_api_error(response, body)
+
+        return body
+
+    # noinspection PyMethodMayBeStatic
+    def _handle_api_error(self, response, body):
+        try:
+            messages = response['messages']['message']
+        except (KeyError, ValueError):
+            raise APIError(
+                'Invalid messages object in response from API: {body}'
+                '(HTTP status code was {status_code})'.format(
+                    body=body,
+                    status_code=response.status_code))
+
+        # TODO more advance handling of error messages
+        raise APIError(messages)
 
 
 __client__ = None
