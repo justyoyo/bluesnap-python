@@ -18,10 +18,7 @@ class ShopperTestCase(unittest.TestCase):
             first_name='John',
             last_name='Doe',
             email='test@justyoyo.com',
-            address_1='(Empty)',
-            city='(Empty)',
-            zip='(Empty)',
-            country='gb',
+            zip='SW5',
             phone='07777777777'
         )
 
