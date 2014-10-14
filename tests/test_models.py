@@ -28,6 +28,8 @@ class PlainCreditCardTestCase(TestCase):
         get_xml_schema('credit-card-info.xsd').assertValid(self.xml)
 
     def test_to_xml_sets_correct_values(self):
+        self.assertEqual(self.xml.tag, '{http://ws.plimus.com}credit-card')
+
         # Validate values being set correctly
         for xml_key, dict_key in [('card-type', 'card_type'),
                                   ('expiration-month', 'expiration_month'),
@@ -60,6 +62,8 @@ class EncryptedCreditCardTestCase(TestCase):
     #     get_xml_schema('credit-card-info.xsd').assertValid(self.xml)
 
     def test_to_xml_sets_correct_values(self):
+        self.assertEqual(self.xml.tag, '{http://ws.plimus.com}credit-card')
+
         # Validate values being set correctly
         for xml_key, dict_key in [('card-type', 'card_type'),
                                   ('expiration-month', 'expiration_month'),
@@ -84,6 +88,8 @@ class WebInfoTestCase(TestCase):
         get_xml_schema('web-info.xsd').assertValid(self.xml)
 
     def test_to_xml_sets_correct_values(self):
+        self.assertEqual(self.xml.tag, '{http://ws.plimus.com}web-info')
+
         # Validate values being set correctly
         for xml_key, dict_key in [('ip', 'ip'),
                                   ('remote-host', 'remote_host'),
@@ -92,3 +98,45 @@ class WebInfoTestCase(TestCase):
 
             self.assertIsNotNone(element, 'Cannot find element <{}/>'.format(NAMESPACE_PREFIX + xml_key))
             self.assertEqual(element.text, getattr(self.instance, dict_key))
+
+
+class ContactInfoTestCase(TestCase):
+    model = models.ContactInfo
+    element_name = '{http://ws.plimus.com}contact-info'
+
+    def setUp(self):
+        self.contact_info = {
+            'email': 'test@justyoyo.com',
+            'first_name': 'John',
+            'last_name': 'Doe'
+        }
+
+        self.instance = self.model(**self.contact_info)
+        self.xml = self.instance.to_xml()
+
+    def test_to_xml_sets_correct_values(self):
+        self.assertEqual(self.xml.tag, self.element_name)
+
+        # Validate values being set correctly
+        for xml_key, dict_key in [('first-name', 'first_name'),
+                                  ('last-name', 'last_name'),
+                                  ('email', 'email'),
+                                  ('address1', 'address_1'),
+                                  ('city', 'city'),
+                                  ('zip', 'zip'),
+                                  ('country', 'country'),
+                                  ('phone', 'phone')]:
+            element = self.xml.find(NAMESPACE_PREFIX + xml_key)
+
+            self.assertIsNotNone(element, 'Cannot find element <{}/>'.format(NAMESPACE_PREFIX + xml_key))
+            self.assertEqual(element.text, getattr(self.instance, dict_key))
+
+
+class ShopperContactInfo(ContactInfoTestCase):
+    model = models.ShopperContactInfo
+    element_name = '{http://ws.plimus.com}shopper-contact-info'
+
+
+class BillingContactInfo(ContactInfoTestCase):
+    model = models.BillingContactInfo
+    element_name = '{http://ws.plimus.com}billing-contact-info'
