@@ -64,34 +64,6 @@ class Shopper(Resource):
             shopper_id = self.shopper_id_path_pattern.match(new_shopper_url.path).group(1)
 
             return self.find_by_shopper_id(int(shopper_id))
-        else:
-            # TODO parse message
-            messages = etree.XML(response.content)
-
-            for message in messages:
-                print 'ok'
-                print etree.tostring(message, pretty_print=True)
-                # data = {}
-                # for attr in message.iter():
-                #     data[attr.tag] = attr.text
-
-                # print data
-                # print message.findtext('{*}code')
-                # print message.findtext('{*}description')
-                # if hasattr(message, 'description'):
-                #     print message.description
-
-            # print dir(messages), messages.__class__
-
-            # for message in messages.message:
-            #     print message
-
-            # print etree.tostring(messages, pretty_print=True)
-
-            #
-            # print messages_schema.CreateFromDocument(r.text)
-
-        # raise Exception
 
     def find_by_shopper_id(self, shopper_id):
         """

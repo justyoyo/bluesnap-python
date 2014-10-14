@@ -1,8 +1,10 @@
+from pyexpat import ExpatError
 from lxml.builder import ElementMaker
 from requests.auth import HTTPBasicAuth
 import requests
+import xmltodict
 
-from exceptions import ImproperlyConfigured
+from exceptions import ImproperlyConfigured, ValidationError
 
 
 class Client(object):
@@ -48,26 +50,28 @@ class Client(object):
         :type method: str
         """
         headers = {
-            'content-type': 'application/xml',
+            'content-type': 'application/xml',  # Must be XML or API will complain
         }
 
         url = self.endpoint_url + path
 
         request = getattr(requests, method.lower())  # requests.{get,post,put,delete}
 
-        r = request(url,
-                    headers=headers,
-                    auth=self.http_basic_auth,
-                    data=data)
+        response = request(url,
+                           headers=headers,
+                           auth=self.http_basic_auth,
+                           data=data)
 
-        if r.status_code in (requests.codes.ok, requests.codes.created):
-            # Everything is okay
-            return r
-        elif r.status_code == requests.codes.bad:
-            return r
-        else:
-            # Don't know how to handle this
-            r.raise_for_status()
+        if response.status_code in (requests.codes.ok, requests.codes.created):  # Everything is okay
+            return response
+        elif response.status_code == requests.codes.bad:  # Something bad happened
+            try:
+                messages = xmltodict.parse(response.content).get(u'messages', {}).get(u'message', [])
+            except ExpatError:
+                messages = response.body
+            raise ValidationError(messages)
+        else:  # Don't know how to handle this, so raise an error
+            response.raise_for_status()
 
 
 __client__ = None
