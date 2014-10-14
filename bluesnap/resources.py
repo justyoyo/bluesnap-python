@@ -4,6 +4,7 @@ import re
 from lxml import objectify, etree
 from lxml.builder import ElementMaker
 import requests
+import xmltodict
 
 from . import models
 from .client import default as default_client
@@ -19,6 +20,9 @@ class Shopper(Resource):
     path = '/services/2/shoppers'
     new_shopper_path = path + '/{shopper_id}'
     shopper_id_path_pattern = re.compile('{}/(\d+)'.format(path))  # /services/2/shoppers/(\d+)
+
+    class DoesNotExist(Exception):
+        pass
 
     def create(self, contact_info, credit_card):
         """
@@ -90,14 +94,27 @@ class Shopper(Resource):
         # raise Exception
 
     def find_by_shopper_id(self, shopper_id):
+        """
+        :raise self.DoesNotExist
+        :param shopper_id: BlueSnap shopper id
+        :return: shopper dictionary
+        """
         response = self.client.request('GET', self.new_shopper_path.format(shopper_id=shopper_id))
 
-        shopper_element = etree.XML(response.content)
-        print etree.tostring(shopper_element, pretty_print=True)
+        if response.status_code == requests.codes.ok:
+            return xmltodict.parse(response.content).get(u'shopper')
+        else:
+            raise self.DoesNotExist('Shopper with id {} does not exist')
 
     def find_by_seller_shopper_id(self, seller_shopper_id):
-        # TODO
-        pass
+        """
+        :raise self.DoesNotExist
+        :param seller_shopper_id: Seller-specific shopper id
+        :return: shopper dictionary
+        """
+        return self.find_by_shopper_id('{seller_shopper_id},{seller_id}'.format(
+            seller_shopper_id=seller_shopper_id,
+            seller_id=self.client.seller_id))
 
 
 class Order(Resource):
