@@ -37,7 +37,7 @@ class ShopperTestCase(unittest.TestCase):
         shopper.create(
             contact_info=contact_info,
             credit_card=credit_card)
-        # self.assertTrue(False)
+        self.assertTrue(False)
 
-    def test_order_xml(self):
-        order = Order().create()
+    # def test_order_xml(self):
+    #     order = Order().create()

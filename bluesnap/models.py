@@ -139,5 +139,59 @@ class WebInfo(Model):
         )
 
 
-ContactInfo = namedtuple('ContactInfo',
-                         ['first_name', 'last_name', 'email', 'address_1', 'city', 'zip', 'country', 'phone'])
+class ContactInfo(Model):
+    ELEMENT_NAME = None
+    NONE_PLACEHOLDER = '(Empty)'
+
+    def __init__(self, email,
+                 first_name=None, last_name=None, address_1=None, city=None,
+                 zip=None, country=None, phone=None, client=None):
+        super(ContactInfo, self).__init__(
+            client=client
+        )
+
+        self.email = email
+        self.first_name = first_name or self.NONE_PLACEHOLDER
+        self.last_name = last_name or self.NONE_PLACEHOLDER
+        self.address_1 = address_1 or self.NONE_PLACEHOLDER
+        self.city = city or self.NONE_PLACEHOLDER
+        self.zip = zip or self.NONE_PLACEHOLDER
+        self.country = country or self.NONE_PLACEHOLDER
+        self.phone = phone or self.NONE_PLACEHOLDER
+
+    @property
+    def xml_element_name(self):
+        if self.ELEMENT_NAME:
+            return '{}-contact-info'.format(self.ELEMENT_NAME)
+        else:
+            return 'contact-info'
+
+    def to_xml(self):
+        """
+        Converts WebInfo object to XML object:
+
+        <{xml_element_name}-contact-info>
+            <first-name>John</first-name>
+            <last-name>Doe</last-name>
+            <email>dev@justyoyo.com</email>
+            <address1>Address 1</address1>
+            <city>City</city>
+            <zip>SW5</zip>
+            <country>gb</country>
+            <phone>07777777777</phone>
+        </{xml_element_name}-contact-info>
+
+        :return: lxml.etree._Element
+        """
+        E = self.client.E
+
+        return getattr(E, self.xml_element_name)(
+            getattr(E, 'first-name')(self.first_name),
+            getattr(E, 'last-name')(self.last_name),
+            E.email(self.email),
+            E.address1(self.address_1),
+            E.city(self.city),
+            E.zip(self.zip),
+            E.country(self.country),
+            E.phone(self.phone)
+        )
