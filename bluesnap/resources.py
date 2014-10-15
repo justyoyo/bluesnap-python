@@ -87,8 +87,8 @@ class Shopper(Resource):
         Creates a new shopper
         :type contact_info: models.ContactInfo
         :type credit_card: models.AbstractCreditCard
-        :param seller_shopper_id: Seller-specific shopper Id
-        :param return_id: If True, returns the BlueSnap shopper Id. If False, fetches and returns the shopper object
+        :param seller_shopper_id: Seller-specific shopper id
+        :param return_id: If True, returns the BlueSnap shopper id. If False, fetches and returns the shopper object
         :return: Depends on return_id. See param description above
         """
         shopper_element = self._create_shopper_element(contact_info, credit_card, seller_shopper_id)
@@ -106,6 +106,13 @@ class Shopper(Resource):
             return self.find_by_shopper_id(shopper_id)
 
     def update(self, shopper_id, contact_info, credit_card=None):
+        """
+        Updates an existing shopper
+        :param shopper_id: BlueSnap shopper id
+        :type contact_info: models.ContactInfo
+        :type credit_card: models.AbstractCreditCard
+        :rtype: bool
+        """
         shopper_element = self._create_shopper_element(contact_info, credit_card)
         data = etree.tostring(shopper_element)
 
