@@ -82,14 +82,13 @@ class Shopper(Resource):
             models.WebInfo().to_xml()
         )
 
-    def create(self, contact_info, credit_card=None, seller_shopper_id=None, return_id=True):
+    def create(self, contact_info, credit_card=None, seller_shopper_id=None):
         """
         Creates a new shopper
         :type contact_info: models.ContactInfo
         :type credit_card: models.AbstractCreditCard
         :param seller_shopper_id: Seller-specific shopper id
-        :param return_id: If True, returns the BlueSnap shopper id. If False, fetches and returns the shopper object
-        :return: Depends on return_id. See param description above
+        :return: Returns the newly created BlueSnap shopper id
         """
         shopper_element = self._create_shopper_element(contact_info, credit_card, seller_shopper_id)
         data = etree.tostring(shopper_element)
@@ -100,10 +99,7 @@ class Shopper(Resource):
         new_shopper_url = urlparse(response.headers['location'])
         shopper_id = self.shopper_id_path_pattern.match(new_shopper_url.path).group(1)
 
-        if return_id:
-            return shopper_id
-        else:
-            return self.find_by_shopper_id(shopper_id)
+        return shopper_id
 
     def update(self, shopper_id, contact_info, credit_card=None):
         """
