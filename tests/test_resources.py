@@ -1,4 +1,5 @@
 import unittest
+from bluesnap.exceptions import APIError
 
 from mock import MagicMock
 
@@ -7,11 +8,10 @@ from bluesnap.resources import Order, Shopper
 from helper import configure_client, DUMMY_CARD_VISA
 
 
-configure_client()
-
-
 class ShopperTestCase(unittest.TestCase):
     def setUp(self):
+        configure_client()
+
         self.contact_info = ContactInfo(
             first_name='John',
             last_name='Doe',
@@ -27,15 +27,52 @@ class ShopperTestCase(unittest.TestCase):
             card_number=DUMMY_CARD_VISA['card_number'],
             security_code=DUMMY_CARD_VISA['security_code'])
 
-    def test_shopper_xml(self):
-        shopper = Shopper()
-        shopper.create(
+    def create_shopper(self, shopper):
+        return shopper.create(
             contact_info=self.contact_info,
             credit_card=self.credit_card)
-        self.assertTrue(False)  # TODO
+
+    def test_create_with_valid_contact_info(self):
+        shopper = Shopper()
+        mocked_shopper_obj = MagicMock()
+        shopper.find_by_shopper_id = MagicMock(return_value=mocked_shopper_obj)
+
+        shopper_obj = shopper.create(
+            contact_info=self.contact_info)
+
+        self.assertEqual(shopper.find_by_shopper_id.call_count, 1)
+        self.assertEqual(shopper_obj, mocked_shopper_obj)
+
+    def test_create_with_valid_contact_info_and_credit_card(self):
+        shopper = Shopper()
+        mocked_shopper_obj = MagicMock()
+        shopper.find_by_shopper_id = MagicMock(return_value=mocked_shopper_obj)
+
+        shopper_obj = shopper.create(
+            contact_info=self.contact_info,
+            credit_card=self.credit_card)
+
+        self.assertEqual(shopper.find_by_shopper_id.call_count, 1)
+        self.assertEqual(shopper_obj, mocked_shopper_obj)
+
+    def test_create_with_invalid_parameters(self):
+        shopper = Shopper()
+
+        with self.assertRaises(APIError):
+            shopper.create(
+                contact_info=ContactInfo(email=''),
+                credit_card=self.credit_card)
 
     def test_find_by_with_valid_shopper_id(self):
-        pass  # TODO
+        shopper = Shopper()
+        shopper_obj = shopper.create(
+            contact_info=self.contact_info)
+
+        self.assertIsInstance(shopper_obj, dict)
+        shopper_contact_info = shopper_obj['shopper-info']['shopper-contact-info']
+        self.assertEqual(shopper_contact_info['first-name'], self.contact_info.first_name)
+        self.assertEqual(shopper_contact_info['last-name'], self.contact_info.last_name)
+        self.assertEqual(shopper_obj['shopper-info']['store-id'], shopper.client.default_store_id)
 
     def test_find_by_seller_shopper_id(self):
         seller_id = 'seller_id'
