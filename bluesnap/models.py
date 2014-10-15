@@ -1,10 +1,4 @@
-from collections import namedtuple
-import platform
-
-import requests
-
-from .client import default as default_client
-from .version import __version__
+from .client import default as default_client, default_user_agent
 
 
 class Model(object):
@@ -107,16 +101,7 @@ class WebInfo(Model):
 
         self.ip = ip or '0.0.0.0'
         self.remote_host = remote_host or 'localhost'
-        self.user_agent = user_agent or self.default_user_agent
-
-    @property
-    def default_user_agent(self):
-        """
-        Generate default user agent based on library repo name, Python version and requests version
-        :return: string
-        """
-        library_versions = 'requests {}; python {}'.format(requests.__version__, platform.version())
-        return 'justyoyo/bluesnap-python {} ({})'.format(__version__, library_versions)
+        self.user_agent = user_agent or default_user_agent()
 
     def to_xml(self):
         """

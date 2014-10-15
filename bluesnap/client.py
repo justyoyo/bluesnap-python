@@ -7,6 +7,17 @@ import xmltodict
 from exceptions import ImproperlyConfigured, ValidationError, APIError
 
 
+def default_user_agent():
+    """
+    Generate default user agent based on library repo name, Python version and requests version
+    :return: string
+    """
+    import platform
+    from .version import __version__
+    library_versions = 'requests {}; python {}'.format(requests.__version__, platform.version())
+    return 'justyoyo/bluesnap-python {} ({})'.format(__version__, library_versions)
+
+
 class Client(object):
     ENDPOINTS = {
         'live': 'https://ws.bluesnap.com',
