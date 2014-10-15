@@ -105,11 +105,8 @@ class Client(object):
             try:
                 body = xmltodict.parse(response.content)
             except ExpatError:
-                raise APIError(
-                    'Cannot parse XML body from API: {body}'
-                    '(HTTP status code was {status_code})'.format(
-                        body=response.content,
-                        status_code=response.status_code))
+                # Cannot parse body as XML, could be a text
+                raise APIError(response.content, status_code=response.status_code)
 
         if not (200 <= response.status_code < 300):
             self._handle_api_error(response, body)
@@ -130,13 +127,11 @@ class Client(object):
                 messages = body['messages']['message']
             except (KeyError, ValueError):
                 raise APIError(
-                    'Invalid messages object in response from API: {body}'
-                    '(HTTP status code was {status_code})'.format(
-                        body=body,
-                        status_code=response.status_code))
+                    'Invalid messages object in response from API: {body}'.format(body=body),
+                    status_code=response.status_code)
 
         # TODO more advance handling of error messages
-        raise APIError(messages)
+        raise APIError(messages, status_code=response.status_code)
 
 
 __client__ = None

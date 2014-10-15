@@ -1,16 +1,16 @@
-import unittest
 from bluesnap.exceptions import APIError
+from unittest import TestCase
 
 from mock import MagicMock
 
 from bluesnap.models import ContactInfo, PlainCreditCard
 from bluesnap.resources import Order, Shopper
-from helper import configure_client, DUMMY_CARD_VISA, DUMMY_CARD_MASTERCARD
+import helper
 
 
-class ShopperTestCase(unittest.TestCase):
+class ShopperTestCase(TestCase):
     def setUp(self):
-        configure_client()
+        helper.configure_client()
 
         self.contact_info = ContactInfo(
             first_name='John',
@@ -20,28 +20,12 @@ class ShopperTestCase(unittest.TestCase):
             country='gb',
             phone='07777777777')
 
-        self.credit_card = PlainCreditCard(
-            card_type=DUMMY_CARD_VISA['card_type'],
-            expiration_month=DUMMY_CARD_VISA['expiration_month'],
-            expiration_year=DUMMY_CARD_VISA['expiration_year'],
-            card_number=DUMMY_CARD_VISA['card_number'],
-            security_code=DUMMY_CARD_VISA['security_code'])
-
-        self.second_credit_card = PlainCreditCard(
-            card_type=DUMMY_CARD_MASTERCARD['card_type'],
-            expiration_month=DUMMY_CARD_MASTERCARD['expiration_month'],
-            expiration_year=DUMMY_CARD_MASTERCARD['expiration_year'],
-            card_number=DUMMY_CARD_MASTERCARD['card_number'],
-            security_code=DUMMY_CARD_MASTERCARD['security_code'])
-
-    def create_shopper(self, shopper):
-        return shopper.create(
-            contact_info=self.contact_info,
-            credit_card=self.credit_card)
+        self.credit_card = PlainCreditCard(**helper.DUMMY_CARD_VISA)
+        self.second_credit_card = PlainCreditCard(**helper.DUMMY_CARD_MASTERCARD)
+        self.third_credit_card = PlainCreditCard(**helper.DUMMY_CARD_AMEX)
 
     def test_create_with_valid_contact_info_returning_id(self):
         shopper = Shopper()
-
         shopper_id = shopper.create(
             contact_info=self.contact_info)
 
@@ -118,18 +102,20 @@ class ShopperTestCase(unittest.TestCase):
             seller_id=seller_id))
 
     def test_find_by_bogus_shopper_id_and_seller_shopper_id_raises_exception(self):
-        with self.assertRaises(Shopper.DoesNotExist):
-            Shopper().find_by_shopper_id('bogus_shopper_id')
+        with self.assertRaisesRegexp(APIError, 'User: API_\d+ is not authorized to view shopper: 0'):
+            Shopper().find_by_shopper_id('0')
 
-        with self.assertRaises(Shopper.DoesNotExist):
+        with self.assertRaisesRegexp(
+                APIError,
+                'User: API_\d+ is not authorized to view seller shopper: bogus_seller_shopper_id'):
             Shopper().find_by_seller_shopper_id('bogus_seller_shopper_id')
 
     def test_update_fails_with_invalid_shopper_id(self):
         shopper = Shopper()
 
-        with self.assertRaises(Shopper.DoesNotExist):
+        with self.assertRaisesRegexp(APIError, 'User: API_\d+ is not authorized to update shopper: 0'):
             shopper.update(
-                'bogus_shopper_id',
+                '0',
                 contact_info=self.contact_info)
 
     def test_add_shopper_credit_card(self):
@@ -165,7 +151,7 @@ class ShopperTestCase(unittest.TestCase):
         self.assertIsInstance(credit_cards_info, list)
         self.assertEqual(len(credit_cards_info), 2)
 
-        # Last added credit card displays first
+        # Last added credit card displays first???
         self.assertEqual(credit_cards_info[0]['credit-card']['card-last-four-digits'],
                          self.second_credit_card.card_number[-4:])
         self.assertEqual(credit_cards_info[0]['credit-card']['card-type'],
@@ -174,3 +160,61 @@ class ShopperTestCase(unittest.TestCase):
                          self.credit_card.card_number[-4:])
         self.assertEqual(credit_cards_info[1]['credit-card']['card-type'],
                          self.credit_card.card_type)
+
+        # Add third credit card
+        update_successful = shopper.update(
+            shopper_id=shopper_id,
+            contact_info=self.contact_info,
+            credit_card=self.third_credit_card)
+        self.assertTrue(update_successful)
+
+        shopper_obj = shopper.find_by_shopper_id(shopper_id)
+        credit_cards_info = shopper_obj['shopper-info']['payment-info']['credit-cards-info']['credit-card-info']
+        self.assertIsInstance(credit_cards_info, list)
+        self.assertEqual(len(credit_cards_info), 3)
+
+        # Last added credit card displays first
+        self.assertEqual(credit_cards_info[0]['credit-card']['card-last-four-digits'],
+                         self.third_credit_card.card_number[-4:])
+        self.assertEqual(credit_cards_info[0]['credit-card']['card-type'],
+                         self.third_credit_card.card_type)
+        self.assertEqual(credit_cards_info[1]['credit-card']['card-last-four-digits'],
+                         self.second_credit_card.card_number[-4:])
+        self.assertEqual(credit_cards_info[1]['credit-card']['card-type'],
+                         self.second_credit_card.card_type)
+        self.assertEqual(credit_cards_info[2]['credit-card']['card-last-four-digits'],
+                         self.credit_card.card_number[-4:])
+        self.assertEqual(credit_cards_info[2]['credit-card']['card-type'],
+                         self.credit_card.card_type)
+
+
+class OrderTestCase(TestCase):
+    def setUp(self):
+        helper.configure_client()
+
+        self.contact_info = ContactInfo(
+            first_name='John',
+            last_name='Doe',
+            email='test@justyoyo.com',
+            zip='SW5',
+            country='gb',
+            phone='07777777777')
+
+        self.credit_card = PlainCreditCard(**helper.DUMMY_CARD_VISA)
+
+        shopper = Shopper()
+
+        self.shopper_id = shopper.create(
+            contact_info=self.contact_info,
+            credit_card=self.credit_card)
+
+        self.shopper_id_without_credit_card = shopper.create(
+            contact_info=self.contact_info)
+
+    def test_shopper_with_credit_card_creating_order_succeeds(self):
+        order = Order()
+        # order.create(
+        #     shopper_id=self.shopper_id,
+        #     sku_id=helper.TEST_PRODUCT_SKU_ID,
+        #     amount_in_pence=100
+        # )

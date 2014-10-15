@@ -12,9 +12,6 @@ from .exceptions import APIError
 
 
 class Resource(object):
-    class DoesNotExist(Exception):
-        pass
-
     def __init__(self, client=None):
         self.client = client or default_client()
         """:type : .client.Client"""
@@ -31,21 +28,14 @@ class Shopper(Resource):
 
     def find_by_shopper_id(self, shopper_id):
         """
-        :raise self.DoesNotExist
         :param shopper_id: BlueSnap shopper id
         :return: shopper dictionary
         """
-
-        try:
-            response, body = self.request('GET', self.shopper_path.format(shopper_id=shopper_id))
-        except APIError:
-            raise self.DoesNotExist('Shopper with shopper_id "{}" does not exist', shopper_id)
-
+        response, body = self.request('GET', self.shopper_path.format(shopper_id=shopper_id))
         return body['shopper']
 
     def find_by_seller_shopper_id(self, seller_shopper_id):
         """
-        :raise self.DoesNotExist
         :param seller_shopper_id: Seller-specific shopper id
         :return: shopper dictionary
         """
@@ -112,57 +102,40 @@ class Shopper(Resource):
         shopper_element = self._create_shopper_element(contact_info, credit_card)
         data = etree.tostring(shopper_element)
 
-        try:
-            response, _ = self.request('PUT', self.shopper_path.format(shopper_id=shopper_id), data=data)
-        except APIError:
-            raise self.DoesNotExist('Shopper with shopper_id "{}" does not exist', shopper_id)
-
+        response, _ = self.request('PUT', self.shopper_path.format(shopper_id=shopper_id), data=data)
         return response.status_code == requests.codes.no_content
 
 
 class Order(Resource):
     path = '/services/2/orders'
 
-    def create(self):
-        E = ElementMaker(namespace=self.client.NAMESPACE,
-                         nsmap={None: self.client.NAMESPACE})
+    def create(self, shopper_id, sku_id, amount_in_pence):
+        # noinspection PyPep8Naming
+        E = self.client.E
 
-        ORDER = E.order
-        ORDERING_SHOPPER = getattr(E, 'ordering-shopper')
-        SHOPPER_ID = getattr(E, 'shopper-id')
+        amount = '{:.2f}'.format(amount_in_pence / 100.0)
 
-        CART = E.cart
-        CART_ITEM = getattr(E, 'cart-item')
-        SKU = E.sku
-        SKU_ID = getattr(E, 'sku-id')
-        SKU_CHARGE_PRICE = getattr(E, 'sku-charge-price')
-        CHARGE_TYPE = getattr(E, 'charge-type')
-        AMOUNT = E.amount
-        CURRENCY = E.currency
-        QUANTITY = E.quantity
-        EXPECTED_TOTAL_PRICE = getattr(E, 'expected-total-price')
-
-        order_element = ORDER(
-            ORDERING_SHOPPER(
-                SHOPPER_ID('19572924'),
+        order_element = E.order(
+            getattr(E, 'ordering-shopper')(
+                getattr(E, 'shopper-id')(str(shopper_id)),
                 models.WebInfo().to_xml()
             ),
-            CART(
-                CART_ITEM(
-                    SKU(
-                        SKU_ID('2152476'),
-                        SKU_CHARGE_PRICE(
-                            CHARGE_TYPE('initial'),
-                            AMOUNT('1.00'),
-                            CURRENCY('GBP')
+            E.cart(
+                getattr(E, 'cart-item')(
+                    E.sku(
+                        getattr(E, 'sku-id')(str(sku_id)),
+                        getattr(E, 'sku-charge-price')(
+                            getattr(E, 'charge-type')('initial'),
+                            E.amount(amount),
+                            E.currency(self.client.currency)
                         )
                     ),
-                    QUANTITY('1'),
+                    E.quantity('1'),
                 ),
             ),
-            EXPECTED_TOTAL_PRICE(
-                AMOUNT('1.00'),
-                CURRENCY('GBP')
+            getattr(E, 'expected-total-price')(
+                E.amount(amount),
+                E.currency(self.client.currency)
             )
         )
 
