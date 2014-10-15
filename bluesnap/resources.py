@@ -8,6 +8,7 @@ import xmltodict
 
 from . import models
 from .client import default as default_client
+from .exceptions import APIError
 
 
 class Resource(object):
@@ -34,7 +35,12 @@ class Shopper(Resource):
         :param shopper_id: BlueSnap shopper id
         :return: shopper dictionary
         """
-        response, body = self.request('GET', self.shopper_path.format(shopper_id=shopper_id))
+
+        try:
+            response, body = self.request('GET', self.shopper_path.format(shopper_id=shopper_id))
+        except APIError:
+            raise self.DoesNotExist('Shopper with shopper_id "{}" does not exist', shopper_id)
+
         return body['shopper']
 
     def find_by_seller_shopper_id(self, seller_shopper_id):
@@ -103,7 +109,10 @@ class Shopper(Resource):
         shopper_element = self._create_shopper_element(contact_info, credit_card)
         data = etree.tostring(shopper_element)
 
-        response, _ = self.request('PUT', self.shopper_path.format(shopper_id=shopper_id), data=data)
+        try:
+            response, _ = self.request('PUT', self.shopper_path.format(shopper_id=shopper_id), data=data)
+        except APIError:
+            raise self.DoesNotExist('Shopper with shopper_id "{}" does not exist', shopper_id)
 
         return response.status_code == requests.codes.no_content
 

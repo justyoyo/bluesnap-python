@@ -104,3 +104,18 @@ class ShopperTestCase(unittest.TestCase):
         shopper.find_by_shopper_id.assert_called_once_with('{seller_shopper_id},{seller_id}'.format(
             seller_shopper_id=seller_shopper_id,
             seller_id=seller_id))
+
+    def test_find_by_bogus_shopper_id_and_seller_shopper_id_raises_exception(self):
+        with self.assertRaises(Shopper.DoesNotExist):
+            Shopper().find_by_shopper_id('bogus_shopper_id')
+
+        with self.assertRaises(Shopper.DoesNotExist):
+            Shopper().find_by_seller_shopper_id('bogus_seller_shopper_id')
+
+    def test_update_fails_with_invalid_shopper_id(self):
+        shopper = Shopper()
+
+        with self.assertRaises(Shopper.DoesNotExist):
+            shopper.update(
+                'bogus_shopper_id',
+                contact_info=self.contact_info)

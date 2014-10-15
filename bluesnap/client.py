@@ -97,7 +97,7 @@ class Client(object):
                 raise APIError(
                     'Cannot parse XML body from API: {body}'
                     '(HTTP status code was {status_code})'.format(
-                        body=response.body,
+                        body=response.content,
                         status_code=response.status_code))
 
         if not (200 <= response.status_code < 300):
