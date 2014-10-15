@@ -214,11 +214,39 @@ class OrderTestCase(TestCase):
             contact_info=self.contact_info)
 
     def test_shopper_with_credit_card_creating_order_succeeds(self):
+        amount_in_pence = 150
+        amount = amount_in_pence / 100.0
+        description = 'order description'
         order = Order()
-        order.create(
+        order_obj = order.create(
             shopper_id=self.shopper_id,
             sku_id=helper.TEST_PRODUCT_SKU_ID,
-            amount_in_pence=100)
+            amount_in_pence=amount_in_pence,
+            description=description)
+
+        self.assertIsInstance(order_obj, dict)
+        self.assertEqual(order_obj['ordering-shopper']['shopper-id'], self.shopper_id)
+        self.assertEqual(order_obj['cart']['charged-currency'], order.client.currency)
+        self.assertEqual(order_obj['cart']['cart-item']['sku']['sku-id'], helper.TEST_PRODUCT_SKU_ID)
+        self.assertEqual(int(order_obj['cart']['cart-item']['quantity']), 1)
+        self.assertEqual(float(order_obj['cart']['cart-item']['item-sub-total']), amount)
+        self.assertEqual(float(order_obj['cart']['tax']), 0.0)
+        self.assertEqual(int(order_obj['cart']['tax-rate']), 0)
+        self.assertEqual(float(order_obj['cart']['total-cart-cost']), amount)
+        self.assertIsNotNone(order_obj['post-sale-info']['invoices']['invoice']['invoice-id'])
+        self.assertIsNotNone(order_obj['post-sale-info']['invoices']['invoice']['url'])
+        self.assertIsNotNone(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'soft-descriptor'], description)
+        self.assertEqual(float(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'amount']), amount)
+        self.assertEqual(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'currency'], order.client.currency)
+        self.assertEqual(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'credit-card']['card-last-four-digits'], self.credit_card.card_number[-4:])
 
     def test_shopper_without_credit_card_creating_order_fails(self):
         order = Order()

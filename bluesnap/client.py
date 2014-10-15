@@ -70,7 +70,7 @@ class Client(object):
     @property
     def store_id(self):
         # TODO ability to change this in the future
-        return self.default_store_id
+        return str(self.default_store_id)
 
     def request(self, method, path, data=None):
         """

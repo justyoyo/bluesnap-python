@@ -109,11 +109,15 @@ class Shopper(Resource):
 class Order(Resource):
     path = '/services/2/orders'
 
-    def create(self, shopper_id, sku_id, amount_in_pence):
+    def create(self, shopper_id, sku_id, amount_in_pence, description=None):
         # noinspection PyPep8Naming
         E = self.client.E
 
         amount = '{:.2f}'.format(amount_in_pence / 100.0)
+
+        order = []
+        if description is not None:
+            order.append(getattr(E, 'soft-descriptor')(description))
 
         order_element = E.order(
             getattr(E, 'ordering-shopper')(
@@ -136,7 +140,8 @@ class Order(Resource):
             getattr(E, 'expected-total-price')(
                 E.amount(amount),
                 E.currency(self.client.currency)
-            )
+            ),
+            *order
         )
 
         response, body = self.request('POST', self.path, data=etree.tostring(order_element))
