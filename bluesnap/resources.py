@@ -24,9 +24,9 @@ class Resource(object):
 
 
 class Shopper(Resource):
-    path = '/services/2/shoppers'
-    new_shopper_path = path + '/{shopper_id}'
-    shopper_id_path_pattern = re.compile('{}/(\d+)'.format(path))  # /services/2/shoppers/(\d+)
+    shoppers_path = '/services/2/shoppers'
+    shopper_path = shoppers_path + '/{shopper_id}'
+    shopper_id_path_pattern = re.compile('{}/(\d+)'.format(shoppers_path))  # /services/2/shoppers/(\d+)
 
     def find_by_shopper_id(self, shopper_id):
         """
@@ -34,7 +34,7 @@ class Shopper(Resource):
         :param shopper_id: BlueSnap shopper id
         :return: shopper dictionary
         """
-        response, body = self.request('GET', self.new_shopper_path.format(shopper_id=shopper_id))
+        response, body = self.request('GET', self.shopper_path.format(shopper_id=shopper_id))
         return body['shopper']
 
     def find_by_seller_shopper_id(self, seller_shopper_id):
@@ -86,11 +86,12 @@ class Shopper(Resource):
         :return: Depends on return_id. See param description above
         """
         shopper_element = self._create_shopper_element(contact_info, credit_card, seller_shopper_id)
+        data = etree.tostring(shopper_element)
 
-        response, body = self.request('POST', self.path, data=etree.tostring(shopper_element))
+        response, body = self.request('POST', self.shoppers_path, data=data)
 
+        # Extract shopper id from location header
         new_shopper_url = urlparse(response.headers['location'])
-
         shopper_id = self.shopper_id_path_pattern.match(new_shopper_url.path).group(1)
 
         if return_id:
@@ -98,8 +99,13 @@ class Shopper(Resource):
         else:
             return self.find_by_shopper_id(shopper_id)
 
-    def update(self, contact_info, credit_card=None):
+    def update(self, shopper_id, contact_info, credit_card=None):
         shopper_element = self._create_shopper_element(contact_info, credit_card)
+        data = etree.tostring(shopper_element)
+
+        response, _ = self.request('PUT', self.shopper_path.format(shopper_id=shopper_id), data=data)
+
+        return response.status_code == requests.codes.no_content
 
 
 class Order(Resource):
