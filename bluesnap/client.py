@@ -107,14 +107,22 @@ class Client(object):
 
     # noinspection PyMethodMayBeStatic
     def _handle_api_error(self, response, body):
+        """
+        :raises APIError
+        :param response: HTTP response
+        :param body: Messages may contain in <xml/> or <messages><message/></messages>
+        """
         try:
-            messages = body['messages']['message']
+            messages = body['xml']
         except (KeyError, ValueError):
-            raise APIError(
-                'Invalid messages object in response from API: {body}'
-                '(HTTP status code was {status_code})'.format(
-                    body=body,
-                    status_code=response.status_code))
+            try:
+                messages = body['messages']['message']
+            except (KeyError, ValueError):
+                raise APIError(
+                    'Invalid messages object in response from API: {body}'
+                    '(HTTP status code was {status_code})'.format(
+                        body=body,
+                        status_code=response.status_code))
 
         # TODO more advance handling of error messages
         raise APIError(messages)
