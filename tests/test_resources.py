@@ -9,6 +9,8 @@ import helper
 
 
 class ShopperTestCase(TestCase):
+    maxDiff = None
+
     def setUp(self):
         helper.configure_client()
 
@@ -151,15 +153,14 @@ class ShopperTestCase(TestCase):
         self.assertIsInstance(credit_cards_info, list)
         self.assertEqual(len(credit_cards_info), 2)
 
-        # Last added credit card displays first???
-        self.assertEqual(credit_cards_info[0]['credit-card']['card-last-four-digits'],
-                         self.second_credit_card.card_number[-4:])
-        self.assertEqual(credit_cards_info[0]['credit-card']['card-type'],
-                         self.second_credit_card.card_type)
-        self.assertEqual(credit_cards_info[1]['credit-card']['card-last-four-digits'],
-                         self.credit_card.card_number[-4:])
-        self.assertEqual(credit_cards_info[1]['credit-card']['card-type'],
-                         self.credit_card.card_type)
+        # The order of the credit cards is not known, so we sort the items before comparing.
+        cards = map(lambda c: dict(c['credit-card']), credit_cards_info)
+        self.assertItemsEqual(
+            cards,
+            [{'card-last-four-digits': self.credit_card.card_number[-4:],
+              'card-type': self.credit_card.card_type},
+             {'card-last-four-digits': self.second_credit_card.card_number[-4:],
+              'card-type': self.second_credit_card.card_type}])
 
         # Add third credit card
         update_successful = shopper.update(
@@ -174,18 +175,15 @@ class ShopperTestCase(TestCase):
         self.assertEqual(len(credit_cards_info), 3)
 
         # Last added credit card displays first
-        self.assertEqual(credit_cards_info[0]['credit-card']['card-last-four-digits'],
-                         self.third_credit_card.card_number[-4:])
-        self.assertEqual(credit_cards_info[0]['credit-card']['card-type'],
-                         self.third_credit_card.card_type)
-        self.assertEqual(credit_cards_info[1]['credit-card']['card-last-four-digits'],
-                         self.second_credit_card.card_number[-4:])
-        self.assertEqual(credit_cards_info[1]['credit-card']['card-type'],
-                         self.second_credit_card.card_type)
-        self.assertEqual(credit_cards_info[2]['credit-card']['card-last-four-digits'],
-                         self.credit_card.card_number[-4:])
-        self.assertEqual(credit_cards_info[2]['credit-card']['card-type'],
-                         self.credit_card.card_type)
+        cards = map(lambda c: dict(c['credit-card']), credit_cards_info)
+        self.assertItemsEqual(
+            cards,
+            [{'card-last-four-digits': self.credit_card.card_number[-4:],
+              'card-type': self.credit_card.card_type},
+             {'card-last-four-digits': self.second_credit_card.card_number[-4:],
+              'card-type': self.second_credit_card.card_type},
+             {'card-last-four-digits': self.third_credit_card.card_number[-4:],
+              'card-type': self.third_credit_card.card_type}])
 
 
 class OrderTestCase(TestCase):
@@ -213,8 +211,8 @@ class OrderTestCase(TestCase):
 
     def test_shopper_with_credit_card_creating_order_succeeds(self):
         order = Order()
-        # order.create(
-        #     shopper_id=self.shopper_id,
-        #     sku_id=helper.TEST_PRODUCT_SKU_ID,
-        #     amount_in_pence=100
-        # )
+        order.create(
+            shopper_id=self.shopper_id,
+            sku_id=helper.TEST_PRODUCT_SKU_ID,
+            amount_in_pence=100
+        )
