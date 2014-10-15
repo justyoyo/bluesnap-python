@@ -66,7 +66,8 @@ class ShopperTestCase(TestCase):
     def test_create_with_invalid_parameters(self):
         shopper = Shopper()
 
-        with self.assertRaises(APIError):
+        # TODO raise a more informative exception instead of a generic one
+        with self.assertRaisesRegexp(APIError, 'Seller \d+ encountered a problem creating a new shopper due to incorrect input.'):
             shopper.create(
                 contact_info=ContactInfo(email=''),
                 credit_card=self.credit_card)
@@ -104,9 +105,11 @@ class ShopperTestCase(TestCase):
             seller_id=seller_id))
 
     def test_find_by_bogus_shopper_id_and_seller_shopper_id_raises_exception(self):
+        # TODO raise a more informative exception instead of a generic one
         with self.assertRaisesRegexp(APIError, 'User: API_\d+ is not authorized to view shopper: 0'):
             Shopper().find_by_shopper_id('0')
 
+        # TODO raise a more informative exception instead of a generic one
         with self.assertRaisesRegexp(
                 APIError,
                 'User: API_\d+ is not authorized to view seller shopper: bogus_seller_shopper_id'):
@@ -115,6 +118,7 @@ class ShopperTestCase(TestCase):
     def test_update_fails_with_invalid_shopper_id(self):
         shopper = Shopper()
 
+        # TODO raise a more informative exception instead of a generic one
         with self.assertRaisesRegexp(APIError, 'User: API_\d+ is not authorized to update shopper: 0'):
             shopper.update(
                 '0',
@@ -214,5 +218,18 @@ class OrderTestCase(TestCase):
         order.create(
             shopper_id=self.shopper_id,
             sku_id=helper.TEST_PRODUCT_SKU_ID,
-            amount_in_pence=100
-        )
+            amount_in_pence=100)
+
+    def test_shopper_without_credit_card_creating_order_fails(self):
+        order = Order()
+        with self.assertRaises(APIError) as e:
+            order.create(
+                shopper_id=self.shopper_id_without_credit_card,
+                sku_id=helper.TEST_PRODUCT_SKU_ID,
+                amount_in_pence=100)
+
+        # TODO raise a more informative exception instead of a generic one
+        self.assertListEqual(
+            e.messages,
+            [{'code': '15009',
+              'description': 'Order creation failure, since no payment information was provided.'}])
