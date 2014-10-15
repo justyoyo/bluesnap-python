@@ -32,13 +32,23 @@ class ShopperTestCase(unittest.TestCase):
             contact_info=self.contact_info,
             credit_card=self.credit_card)
 
-    def test_create_with_valid_contact_info(self):
+    def test_create_with_valid_contact_info_returning_id(self):
+        shopper = Shopper()
+
+        shopper_id = shopper.create(
+            contact_info=self.contact_info,
+            return_id=True)
+
+        self.assertIsNotNone(shopper_id)
+
+    def test_create_with_valid_contact_info_returning_object(self):
         shopper = Shopper()
         mocked_shopper_obj = MagicMock()
         shopper.find_by_shopper_id = MagicMock(return_value=mocked_shopper_obj)
 
         shopper_obj = shopper.create(
-            contact_info=self.contact_info)
+            contact_info=self.contact_info,
+            return_id=False)
 
         self.assertEqual(shopper.find_by_shopper_id.call_count, 1)
         self.assertEqual(shopper_obj, mocked_shopper_obj)
@@ -50,8 +60,8 @@ class ShopperTestCase(unittest.TestCase):
 
         shopper_obj = shopper.create(
             contact_info=self.contact_info,
-            credit_card=self.credit_card)
-
+            credit_card=self.credit_card,
+            return_id=False)
         self.assertEqual(shopper.find_by_shopper_id.call_count, 1)
         self.assertEqual(shopper_obj, mocked_shopper_obj)
 
@@ -63,10 +73,15 @@ class ShopperTestCase(unittest.TestCase):
                 contact_info=ContactInfo(email=''),
                 credit_card=self.credit_card)
 
-    def test_find_by_with_valid_shopper_id(self):
+    def test_find_by_shopper_id(self):
         shopper = Shopper()
-        shopper_obj = shopper.create(
+        shopper_id = shopper.create(
             contact_info=self.contact_info)
+
+        self.assertIsNotNone(shopper_id)
+
+        # find_by_shopper_id
+        shopper_obj = shopper.find_by_shopper_id(shopper_id)
 
         self.assertIsInstance(shopper_obj, dict)
         shopper_contact_info = shopper_obj['shopper-info']['shopper-contact-info']
@@ -83,7 +98,9 @@ class ShopperTestCase(unittest.TestCase):
         shopper.client.seller_id = seller_id
         shopper.find_by_shopper_id = MagicMock()
 
+        # find_by_seller_shopper_id
         shopper.find_by_seller_shopper_id(seller_shopper_id)
+
         shopper.find_by_shopper_id.assert_called_once_with('{seller_shopper_id},{seller_id}'.format(
             seller_shopper_id=seller_shopper_id,
             seller_id=seller_id))
