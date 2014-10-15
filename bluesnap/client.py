@@ -25,7 +25,9 @@ class Client(object):
                  # Seller id
                  seller_id,
                  # Default currency
-                 default_currency):
+                 default_currency,
+                 # Locale
+                 locale='en'):
         if env not in self.ENDPOINTS:
             raise ValueError('env not in {0}'.format(self.ENDPOINTS.keys()))
 
@@ -35,6 +37,7 @@ class Client(object):
         self.default_store_id = default_store_id
         self.seller_id = seller_id
         self.default_currency = default_currency.upper()
+        self.locale = locale
 
         # ElementMaker for XML builder
         self.E = ElementMaker(namespace=self.NAMESPACE,

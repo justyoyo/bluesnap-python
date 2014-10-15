@@ -49,7 +49,7 @@ class Shopper(Resource):
             getattr(E, 'shopper-info')(
                 getattr(E, 'store-id')(self.client.store_id),
                 getattr(E, 'shopper-currency')(self.client.currency),
-                E.locale('en'),
+                E.locale(self.client.locale),
                 # getattr(E, 'seller-shopper-id')('1234'),
                 contact_info.to_xml('shopper'),
                 getattr(E, 'payment-info')(
