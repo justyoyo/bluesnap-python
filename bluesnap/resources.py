@@ -28,7 +28,7 @@ class Shopper(Resource):
     new_shopper_path = path + '/{shopper_id}'
     shopper_id_path_pattern = re.compile('{}/(\d+)'.format(path))  # /services/2/shoppers/(\d+)
 
-    def create(self, contact_info, credit_card=None):
+    def create(self, contact_info, credit_card=None, seller_shopper_id=None):
         """
         :type contact_info : models.ContactInfo
         :type credit_card : models.AbstractCreditCard
@@ -37,12 +37,15 @@ class Shopper(Resource):
         E = self.client.E
 
         credit_cards_info = []
-
         if credit_card is not None:
             credit_cards_info.append(getattr(E, 'credit-card-info')(
                 contact_info.to_xml('billing'),
                 credit_card.to_xml()
             ))
+
+        shopper_info = []
+        if seller_shopper_id is not None:
+            shopper_info.append(getattr(E, 'seller-shopper-id')(seller_shopper_id))
 
         # noinspection PyCallByClass
         shopper_element = E.shopper(
@@ -50,11 +53,11 @@ class Shopper(Resource):
                 getattr(E, 'store-id')(self.client.store_id),
                 getattr(E, 'shopper-currency')(self.client.currency),
                 E.locale(self.client.locale),
-                # getattr(E, 'seller-shopper-id')('1234'),
                 contact_info.to_xml('shopper'),
                 getattr(E, 'payment-info')(
                     getattr(E, 'credit-cards-info')(*credit_cards_info)
-                )
+                ),
+                *shopper_info
             ),
             models.WebInfo().to_xml()
         )
