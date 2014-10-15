@@ -47,8 +47,8 @@ class Shopper(Resource):
         # noinspection PyCallByClass
         shopper_element = E.shopper(
             getattr(E, 'shopper-info')(
-                getattr(E, 'store-id')(self.client.default_store_id),
-                getattr(E, 'shopper-currency')('GBP'),
+                getattr(E, 'store-id')(self.client.store_id),
+                getattr(E, 'shopper-currency')(self.client.currency),
                 E.locale('en'),
                 # getattr(E, 'seller-shopper-id')('1234'),
                 contact_info.to_xml('shopper'),

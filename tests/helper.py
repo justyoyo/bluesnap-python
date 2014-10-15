@@ -16,7 +16,8 @@ SANDBOX_CLIENT_CONFIG = {
     'username': 'API_14127729102161320867365',
     'password': 'JustYoyo1',
     'default_store_id': '13945',
-    'seller_id': '397608'
+    'seller_id': '397608',
+    'default_currency': 'GBP'
 }
 
 # Dummy cards taken from

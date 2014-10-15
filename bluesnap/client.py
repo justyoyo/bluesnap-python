@@ -23,7 +23,9 @@ class Client(object):
                  # Default store Id
                  default_store_id,
                  # Seller id
-                 seller_id):
+                 seller_id,
+                 # Default currency
+                 default_currency):
         if env not in self.ENDPOINTS:
             raise ValueError('env not in {0}'.format(self.ENDPOINTS.keys()))
 
@@ -32,6 +34,7 @@ class Client(object):
         self.password = password
         self.default_store_id = default_store_id
         self.seller_id = seller_id
+        self.default_currency = default_currency.upper()
 
         # ElementMaker for XML builder
         self.E = ElementMaker(namespace=self.NAMESPACE,
@@ -44,6 +47,16 @@ class Client(object):
     @property
     def http_basic_auth(self):
         return HTTPBasicAuth(self.username, self.password)
+
+    @property
+    def currency(self):
+        # TODO ability to change this in the future
+        return self.default_currency
+
+    @property
+    def store_id(self):
+        # TODO ability to change this in the future
+        return self.default_store_id
 
     def request(self, method, path, data=None):
         """
