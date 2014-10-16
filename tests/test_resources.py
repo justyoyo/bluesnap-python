@@ -401,12 +401,12 @@ class OrderTestCase(TestCase):
         order_obj = order.create(
             shopper_id=self.shopper_id_with_two_credit_cards,
             sku_id=helper.TEST_PRODUCT_SKU_ID,
-            amount_in_pence=100,
+            amount_in_pence=amount_in_pence,
             credit_card=self.credit_card_selection,
             description=description)
 
         self.assertIsInstance(order_obj, dict)
-        self.assertEqual(order_obj['ordering-shopper']['shopper-id'], self.shopper_id_with_one_credit_card)
+        self.assertEqual(order_obj['ordering-shopper']['shopper-id'], self.shopper_id_with_two_credit_cards)
         self.assertEqual(order_obj['cart']['charged-currency'], order.client.currency)
         self.assertEqual(order_obj['cart']['cart-item']['sku']['sku-id'], helper.TEST_PRODUCT_SKU_ID)
         self.assertEqual(int(order_obj['cart']['cart-item']['quantity']), 1)
