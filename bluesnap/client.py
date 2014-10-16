@@ -4,7 +4,7 @@ from requests.auth import HTTPBasicAuth
 import requests
 import xmltodict
 
-from exceptions import ImproperlyConfigured, ValidationError, APIError
+from exceptions import ImproperlyConfigured, ValidationError, APIError, CardError
 
 
 def default_user_agent():
@@ -25,6 +25,9 @@ class Client(object):
     }
 
     NAMESPACE = 'http://ws.plimus.com'
+
+    # List of error codes that is considered a card error
+    CARD_ERROR_CODES = {'14002'}
 
     def __init__(self,
                  # Environment
@@ -127,6 +130,10 @@ class Client(object):
                 if isinstance(body['messages']['message'], list):
                     messages = body['messages']['message']
                 else:
+                    if body['messages']['message']['code'] in self.CARD_ERROR_CODES:
+                        raise CardError(code=body['messages']['message']['code'],
+                                        description=body['messages']['message']['description'])
+
                     messages = [body['messages']['message']]
             except (KeyError, ValueError):
                 raise APIError(

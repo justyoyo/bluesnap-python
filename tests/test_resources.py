@@ -3,6 +3,7 @@ from unittest import TestCase
 
 from mock import MagicMock
 
+from bluesnap import exceptions
 from bluesnap.models import ContactInfo, PlainCreditCard
 from bluesnap.resources import Order, Shopper
 import helper
@@ -139,7 +140,7 @@ class ShopperTestCase(TestCase):
                 '0',
                 contact_info=self.contact_info)
 
-    def test_add_shopper_credit_card(self):
+    def test_add_credit_card(self):
         # Create a shopper, ensuring no credit card info was added
         shopper = Shopper()
         shopper_id = shopper.create(
@@ -203,6 +204,85 @@ class ShopperTestCase(TestCase):
               'card-type': self.second_credit_card.card_type},
              {'card-last-four-digits': self.third_credit_card.card_number[-4:],
               'card-type': self.third_credit_card.card_type}])
+
+    def test_add_invalid_credit_card(self):
+        # Create a shopper, ensuring no credit card info was added
+        shopper = Shopper()
+        shopper_id = shopper.create(
+            contact_info=self.contact_info)
+        shopper_obj = shopper.find_by_shopper_id(shopper_id)
+        self.assertIsNone(shopper_obj['shopper-info']['payment-info']['credit-cards-info'])
+
+        # Add expired card
+        with self.assertRaises(exceptions.CardError) as e:
+            shopper.update(
+                shopper_id=shopper_id,
+                contact_info=self.contact_info,
+                credit_card=PlainCreditCard(
+                    card_type=helper.DUMMY_CARD_VISA__EXPIRED['card_type'],
+                    expiration_month=helper.DUMMY_CARD_VISA__EXPIRED['expiration_month'],
+                    expiration_year=helper.DUMMY_CARD_VISA__EXPIRED['expiration_year'],
+                    card_number=helper.DUMMY_CARD_VISA__EXPIRED['card_number'],
+                    security_code=helper.DUMMY_CARD_VISA__EXPIRED['security_code']))
+        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.description,
+                         'Order creation could not be completed because of payment processing failure: 430306 '
+                         '- The expiration date entered is invalid. Enter valid expiration date or try another card')
+        self.assertEqual(e.exception.simple_description,
+                         'The expiration date entered is invalid. Enter valid expiration date or try another card')
+
+        # Add card with insufficient funds
+        with self.assertRaises(exceptions.CardError) as e:
+            shopper.update(
+                shopper_id=shopper_id,
+                contact_info=self.contact_info,
+                credit_card=PlainCreditCard(
+                    card_type=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['card_type'],
+                    expiration_month=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['expiration_month'],
+                    expiration_year=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['expiration_year'],
+                    card_number=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['card_number'],
+                    security_code=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['security_code']))
+        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.description,
+                         'Order creation could not be completed because of payment processing failure: 430360 '
+                         '- Insufficient funds. Please use another card or contact your bank for assistance')
+        self.assertEqual(e.exception.simple_description,
+                         'Insufficient funds. Please use another card or contact your bank for assistance')
+
+        # Add card with invalid number
+        with self.assertRaises(exceptions.CardError) as e:
+            shopper.update(
+                shopper_id=shopper_id,
+                contact_info=self.contact_info,
+                credit_card=PlainCreditCard(
+                    card_type=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['card_type'],
+                    expiration_month=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['expiration_month'],
+                    expiration_year=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['expiration_year'],
+                    card_number=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['card_number'],
+                    security_code=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['security_code']))
+        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.description,
+                         'Order creation could not be completed because of payment processing failure: 430330 '
+                         '- Invalid card number. Please check the number and try again, or use a different card')
+        self.assertEqual(e.exception.simple_description,
+                         'Invalid card number. Please check the number and try again, or use a different card')
+
+        # Add card with invalid number
+        with self.assertRaises(exceptions.CardError) as e:
+            shopper.update(
+                shopper_id=shopper_id,
+                contact_info=self.contact_info,
+                credit_card=PlainCreditCard(
+                    card_type=helper.DUMMY_CARD_AMEX__AUTH_FAIL['card_type'],
+                    expiration_month=helper.DUMMY_CARD_AMEX__AUTH_FAIL['expiration_month'],
+                    expiration_year=helper.DUMMY_CARD_AMEX__AUTH_FAIL['expiration_year'],
+                    card_number=helper.DUMMY_CARD_AMEX__AUTH_FAIL['card_number'],
+                    security_code=helper.DUMMY_CARD_AMEX__AUTH_FAIL['security_code']))
+        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.description,
+                         'Order creation could not be completed because of payment processing failure: 430285 '
+                         '- Authorization has failed for this transaction. '
+                         'Please try again or contact your bank for assistance')
 
 
 class OrderTestCase(TestCase):
