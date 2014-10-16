@@ -124,7 +124,10 @@ class Client(object):
             messages = body['xml']
         except (KeyError, ValueError):
             try:
-                messages = body['messages']['message']
+                if isinstance(body['messages']['message'], list):
+                    messages = body['messages']['message']
+                else:
+                    messages = [body['messages']['message']]
             except (KeyError, ValueError):
                 raise APIError(
                     'Invalid messages object in response from API: {body}'.format(body=body),

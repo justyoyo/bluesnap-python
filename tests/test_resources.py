@@ -217,7 +217,12 @@ class OrderTestCase(TestCase):
             country='gb',
             phone='07777777777')
 
-        self.credit_card = PlainCreditCard(**helper.DUMMY_CARD_VISA)
+        self.credit_card = PlainCreditCard(
+            card_type=helper.DUMMY_CARD_VISA['card_type'],
+            expiration_month=helper.DUMMY_CARD_VISA['expiration_month'],
+            expiration_year=helper.DUMMY_CARD_VISA['expiration_year'],
+            card_number=helper.DUMMY_CARD_VISA['card_number'],
+            security_code=helper.DUMMY_CARD_VISA['security_code'])
 
         shopper = Shopper()
 
@@ -273,6 +278,6 @@ class OrderTestCase(TestCase):
 
         # TODO raise a more informative exception instead of a generic one
         self.assertListEqual(
-            e.messages,
+            e.exception.messages,
             [{'code': '15009',
               'description': 'Order creation failure, since no payment information was provided.'}])
