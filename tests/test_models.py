@@ -76,6 +76,31 @@ class EncryptedCreditCardTestCase(TestCase):
             self.assertEqual(element.text, str(self.card[dict_key]))
 
 
+class CreditCardSelectionTestCase(TestCase):
+    model = models.CreditCardSelection
+
+    def setUp(self):
+        self.card = DUMMY_CARD_VISA
+
+        self.instance = self.model(
+            card_type=self.card['card_type'],
+            card_last_four_digits=self.card['card_number'][-4:]
+        )
+
+        self.xml = self.instance.to_xml()
+
+    def test_to_xml_returns_correct_schema(self):
+    # Validate XML schema
+        get_xml_schema('credit-card-info.xsd').assertValid(self.xml)
+
+    def test_to_xml_sets_correct_values(self):
+        self.assertEqual(self.xml.tag, '{http://ws.plimus.com}credit-card')
+
+        # Validate values being set correctly
+        self.assertEqual(self.xml.find(NAMESPACE_PREFIX + 'card-type').text, self.card['card_type'])
+        self.assertEqual(self.xml.find(NAMESPACE_PREFIX + 'card-last-four-digits').text, self.card['card_number'][-4:])
+
+
 class WebInfoTestCase(TestCase):
     model = models.WebInfo
 
@@ -114,8 +139,12 @@ class ContactInfoTestCase(TestCase):
         self.instance = self.model(**self.contact_info)
         self.xml = self.instance.to_xml()
 
+    def test_to_xml_sets_correct_element_name(self):
+        self.assertEqual(self.instance.to_xml('billing').tag, '{http://ws.plimus.com}billing-contact-info')
+        self.assertEqual(self.instance.to_xml('shopper').tag, '{http://ws.plimus.com}shopper-contact-info')
+
     def test_to_xml_sets_correct_values(self):
-        self.assertEqual(self.xml.tag, self.element_name)
+        self.assertEqual(self.xml.tag, self.element_name, '{http://ws.plimus.com}contact-info')
 
         # Validate values being set correctly
         for xml_key, dict_key in [('first-name', 'first_name'),
@@ -130,13 +159,3 @@ class ContactInfoTestCase(TestCase):
 
             self.assertIsNotNone(element, 'Cannot find element <{}/>'.format(NAMESPACE_PREFIX + xml_key))
             self.assertEqual(element.text, getattr(self.instance, dict_key))
-
-
-class ShopperContactInfo(ContactInfoTestCase):
-    model = models.ShopperContactInfo
-    element_name = '{http://ws.plimus.com}shopper-contact-info'
-
-
-class BillingContactInfo(ContactInfoTestCase):
-    model = models.BillingContactInfo
-    element_name = '{http://ws.plimus.com}billing-contact-info'

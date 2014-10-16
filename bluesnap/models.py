@@ -11,7 +11,7 @@ class Model(object):
 
 
 class AbstractCreditCard(Model):
-    def __init__(self, card_type, expiration_month, expiration_year, client=None):
+    def __init__(self, card_type, expiration_month=None, expiration_year=None, client=None):
         super(AbstractCreditCard, self).__init__(
             client=client)
 
@@ -90,6 +90,33 @@ class EncryptedCreditCard(AbstractCreditCard):
             getattr(E, 'expiration-month')(str(self.expiration_month)),
             getattr(E, 'expiration-year')(str(self.expiration_year)),
             getattr(E, 'encrypted-security-code')(self.encrypted_security_code)
+        )
+
+
+class CreditCardSelection(AbstractCreditCard):
+    def __init__(self, card_type, card_last_four_digits, client=None):
+        super(CreditCardSelection, self).__init__(
+            card_type=card_type,
+            client=client)
+
+        self.card_last_four_digits = card_last_four_digits
+
+    def to_xml(self):
+        """
+        Converts EncryptedCreditCard object to XML object:
+
+        <credit-card>
+            <card-last-four-digits>...</card-last-four-digits>
+            <card-type>VISA</card-type>
+        </credit-card>
+
+        :return: lxml.etree._Element
+        """
+        E = self.client.E
+
+        return getattr(E, 'credit-card')(
+            getattr(E, 'card-last-four-digits')(self.card_last_four_digits),
+            getattr(E, 'card-type')(self.card_type),
         )
 
 
