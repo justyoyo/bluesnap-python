@@ -4,7 +4,7 @@ from unittest import TestCase
 from mock import MagicMock
 
 from bluesnap import exceptions
-from bluesnap.models import ContactInfo, PlainCreditCard
+from bluesnap.models import ContactInfo, PlainCreditCard, CreditCardSelection
 from bluesnap.resources import Order, Shopper
 import helper
 
@@ -226,10 +226,10 @@ class ShopperTestCase(TestCase):
                     security_code=helper.DUMMY_CARD_VISA__EXPIRED['security_code']))
         self.assertEqual(e.exception.code, '14002')
         self.assertEqual(e.exception.description,
+                         'The expiration date entered is invalid. Enter valid expiration date or try another card')
+        self.assertEqual(e.exception.verbose_description,
                          'Order creation could not be completed because of payment processing failure: 430306 '
                          '- The expiration date entered is invalid. Enter valid expiration date or try another card')
-        self.assertEqual(e.exception.simple_description,
-                         'The expiration date entered is invalid. Enter valid expiration date or try another card')
 
         # Add card with insufficient funds
         with self.assertRaises(exceptions.CardError) as e:
@@ -244,10 +244,10 @@ class ShopperTestCase(TestCase):
                     security_code=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['security_code']))
         self.assertEqual(e.exception.code, '14002')
         self.assertEqual(e.exception.description,
+                         'Insufficient funds. Please use another card or contact your bank for assistance')
+        self.assertEqual(e.exception.verbose_description,
                          'Order creation could not be completed because of payment processing failure: 430360 '
                          '- Insufficient funds. Please use another card or contact your bank for assistance')
-        self.assertEqual(e.exception.simple_description,
-                         'Insufficient funds. Please use another card or contact your bank for assistance')
 
         # Add card with invalid number
         with self.assertRaises(exceptions.CardError) as e:
@@ -262,10 +262,10 @@ class ShopperTestCase(TestCase):
                     security_code=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['security_code']))
         self.assertEqual(e.exception.code, '14002')
         self.assertEqual(e.exception.description,
+                         'Invalid card number. Please check the number and try again, or use a different card')
+        self.assertEqual(e.exception.verbose_description,
                          'Order creation could not be completed because of payment processing failure: 430330 '
                          '- Invalid card number. Please check the number and try again, or use a different card')
-        self.assertEqual(e.exception.simple_description,
-                         'Invalid card number. Please check the number and try again, or use a different card')
 
         # Add card with invalid number
         with self.assertRaises(exceptions.CardError) as e:
@@ -304,28 +304,48 @@ class OrderTestCase(TestCase):
             card_number=helper.DUMMY_CARD_VISA['card_number'],
             security_code=helper.DUMMY_CARD_VISA['security_code'])
 
+        self.credit_card_selection = CreditCardSelection(
+            card_type=helper.DUMMY_CARD_VISA['card_type'],
+            card_last_four_digits=helper.DUMMY_CARD_VISA['card_number'][-4:])
+
         shopper = Shopper()
 
-        self.shopper_id = shopper.create(
+        self.shopper_id_with_one_credit_card = shopper.create(
             contact_info=self.contact_info,
             credit_card=self.credit_card)
 
         self.shopper_id_without_credit_card = shopper.create(
             contact_info=self.contact_info)
 
+        self.shopper_id_with_two_credit_cards = shopper.create(
+            contact_info=self.contact_info,
+            credit_card=self.credit_card)
+        self.assertTrue(shopper.update(
+            shopper_id=self.shopper_id_with_two_credit_cards,
+            contact_info=self.contact_info,
+            credit_card=PlainCreditCard(
+                card_type=helper.DUMMY_CARD_MASTERCARD['card_type'],
+                expiration_month=helper.DUMMY_CARD_MASTERCARD['expiration_month'],
+                expiration_year=helper.DUMMY_CARD_MASTERCARD['expiration_year'],
+                card_number=helper.DUMMY_CARD_MASTERCARD['card_number'],
+                security_code=helper.DUMMY_CARD_MASTERCARD['security_code'])))
+
     def test_shopper_with_credit_card_creating_order_succeeds(self):
         amount_in_pence = 150
         amount = amount_in_pence / 100.0
         description = 'order description'
+
         order = Order()
+
         order_obj = order.create(
-            shopper_id=self.shopper_id,
+            shopper_id=self.shopper_id_with_one_credit_card,
             sku_id=helper.TEST_PRODUCT_SKU_ID,
             amount_in_pence=amount_in_pence,
+            credit_card=self.credit_card_selection,
             description=description)
 
         self.assertIsInstance(order_obj, dict)
-        self.assertEqual(order_obj['ordering-shopper']['shopper-id'], self.shopper_id)
+        self.assertEqual(order_obj['ordering-shopper']['shopper-id'], self.shopper_id_with_one_credit_card)
         self.assertEqual(order_obj['cart']['charged-currency'], order.client.currency)
         self.assertEqual(order_obj['cart']['cart-item']['sku']['sku-id'], helper.TEST_PRODUCT_SKU_ID)
         self.assertEqual(int(order_obj['cart']['cart-item']['quantity']), 1)
@@ -350,14 +370,69 @@ class OrderTestCase(TestCase):
 
     def test_shopper_without_credit_card_creating_order_fails(self):
         order = Order()
+
         with self.assertRaises(APIError) as e:
             order.create(
                 shopper_id=self.shopper_id_without_credit_card,
                 sku_id=helper.TEST_PRODUCT_SKU_ID,
-                amount_in_pence=100)
-
+                amount_in_pence=100,
+                credit_card=self.credit_card_selection)
         # TODO raise a more informative exception instead of a generic one
         self.assertListEqual(
             e.exception.messages,
             [{'code': '15009',
               'description': 'Order creation failure, since no payment information was provided.'}])
+
+    def test_shopper_with_two_credit_cards_with_valid_selection_succeeds(self):
+        amount_in_pence = 150
+        amount = amount_in_pence / 100.0
+        description = 'order description'
+
+        order = Order()
+
+        order_obj = order.create(
+            shopper_id=self.shopper_id_with_two_credit_cards,
+            sku_id=helper.TEST_PRODUCT_SKU_ID,
+            amount_in_pence=100,
+            credit_card=self.credit_card_selection,
+            description=description)
+
+        self.assertIsInstance(order_obj, dict)
+        self.assertEqual(order_obj['ordering-shopper']['shopper-id'], self.shopper_id_with_one_credit_card)
+        self.assertEqual(order_obj['cart']['charged-currency'], order.client.currency)
+        self.assertEqual(order_obj['cart']['cart-item']['sku']['sku-id'], helper.TEST_PRODUCT_SKU_ID)
+        self.assertEqual(int(order_obj['cart']['cart-item']['quantity']), 1)
+        self.assertEqual(float(order_obj['cart']['cart-item']['item-sub-total']), amount)
+        self.assertEqual(float(order_obj['cart']['tax']), 0.0)
+        self.assertEqual(int(order_obj['cart']['tax-rate']), 0)
+        self.assertEqual(float(order_obj['cart']['total-cart-cost']), amount)
+        self.assertIsNotNone(order_obj['post-sale-info']['invoices']['invoice']['invoice-id'])
+        self.assertIsNotNone(order_obj['post-sale-info']['invoices']['invoice']['url'])
+        self.assertIsNotNone(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'soft-descriptor'], description)
+        self.assertEqual(float(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'amount']), amount)
+        self.assertEqual(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'currency'], order.client.currency)
+        self.assertEqual(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'credit-card']['card-last-four-digits'], self.credit_card_selection.card_last_four_digits)
+
+    def test_shopper_with_two_credit_cards_with_invalid_selection_fails(self):
+        amount_in_pence = 150
+        amount = amount_in_pence / 100.0
+        description = 'order description'
+
+        order = Order()
+
+        order_obj = order.create(
+            shopper_id=self.shopper_id_with_two_credit_cards,
+            sku_id=helper.TEST_PRODUCT_SKU_ID,
+            amount_in_pence=100,
+            credit_card=CreditCardSelection(
+                card_type=helper.DUMMY_CARD_AMEX['card_type'],
+                card_last_four_digits=helper.DUMMY_CARD_AMEX['card_number'][-4:]),
+            description=description)

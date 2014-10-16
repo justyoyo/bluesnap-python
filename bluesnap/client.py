@@ -119,30 +119,35 @@ class Client(object):
     # noinspection PyMethodMayBeStatic
     def _handle_api_error(self, response, body):
         """
+        Try to find the error message and raise the correct exception
         :raises APIError
         :param response: HTTP response
         :param body: Messages may contain in <xml/> or <messages><message/></messages>
         """
-        try:
-            messages = body['xml']
+        try:  # <xml>message</xml>
+            raise APIError(description=body['xml'],
+                           status_code=response.status_code)
         except (KeyError, ValueError):
-            try:
-                if isinstance(body['messages']['message'], list):
-                    messages = body['messages']['message']
-                else:
-                    if body['messages']['message']['code'] in self.CARD_ERROR_CODES:
-                        raise CardError(code=body['messages']['message']['code'],
-                                        description=body['messages']['message']['description'])
+            try:  # <messages><message><description>message</description></message></messages>
+                if isinstance(body['messages']['message'], list):  # Multiple <message/> elements
+                    raise APIError(messages=body['messages']['message'],
+                                   status_code=response.status_code)
+                else:  # Only 1 <message/> element
+                    code = body['messages']['message'].get('code', None)
 
-                    messages = [body['messages']['message']]
-            except (KeyError, ValueError):
+                    if code is not None and code in self.CARD_ERROR_CODES:  # Found a CardError
+                        klass = CardError
+                    else:
+                        klass = APIError
+
+                    raise klass(description=body['messages']['message']['description'],
+                                code=code,
+                                status_code=response.status_code)
+
+            except (KeyError, ValueError):  # I don't understand how to interpret this API error
                 raise APIError(
-                    'Invalid messages object in response from API: {body}'.format(body=body),
+                    description='Invalid messages object in response from API: {body}'.format(body=body),
                     status_code=response.status_code)
-
-        # TODO more advance handling of error messages
-        raise APIError(messages, status_code=response.status_code)
-
 
 __client__ = None
 

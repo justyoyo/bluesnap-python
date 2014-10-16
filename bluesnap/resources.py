@@ -109,7 +109,15 @@ class Shopper(Resource):
 class Order(Resource):
     path = '/services/2/orders'
 
-    def create(self, shopper_id, sku_id, amount_in_pence, description=None):
+    def create(self, shopper_id, sku_id, amount_in_pence, credit_card, description=None):
+        """
+        :type shopper_id: int or str
+        :type sku_id: int or str
+        :type amount_in_pence: int
+        :type credit_card: models.CreditCardSelection
+        :param description: Order description
+        :return:
+        """
         # noinspection PyPep8Naming
         E = self.client.E
 
@@ -122,7 +130,8 @@ class Order(Resource):
         order_element = E.order(
             getattr(E, 'ordering-shopper')(
                 getattr(E, 'shopper-id')(str(shopper_id)),
-                models.WebInfo().to_xml()
+                models.WebInfo().to_xml(),
+                credit_card.to_xml()
             ),
             E.cart(
                 getattr(E, 'cart-item')(

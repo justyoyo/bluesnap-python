@@ -2,38 +2,59 @@ import re
 
 
 class APIError(Exception):
-    def __init__(self, messages, status_code):
+    """
+    If description is passed, messages would be ignored
+    """
+    def __init__(self, messages=None, description=None, code=None, status_code=None):
         self.messages = messages
+        self.description = str(description)
+        self.code = code
         self.status_code = status_code
 
     def __str__(self):
-        suffix = " (HTTP status code was {status_code})".format(status_code=self.status_code)
-
-        if isinstance(self.messages, str) or isinstance(self.messages, unicode):
-            return self.messages + suffix
+        if self.description is not None:
+            string = self.description
         else:
-            import json
-            return json.dumps(self.messages, indent=2) + suffix
+            if isinstance(self.messages, str) or isinstance(self.messages, unicode):
+                string = self.messages
+            else:
+                import json
+                string = json.dumps(self.messages, indent=2)
+
+        if self.code is not None:
+            string += ' (BlueSnap error code was {0})'.format(self.code)
+
+        if self.status_code is not None:
+            string += ' (HTTP status code was {status_code})'.format(status_code=self.status_code)
+
+        return string
 
 
 class CardError(Exception):
     simple_description_matcher = re.compile(
         'Order creation could not be completed because of payment processing failure: \d+ - (.*)')
 
-    def __init__(self, code, description):
+    def __init__(self, description, code=None, status_code=None):
+        self.verbose_description = description
         self.code = code
-        self.description = description
+        self.status_code = status_code
 
         # Extract simple description
         try:
-            self.simple_description = self.simple_description_matcher.match(description).group(1)
+            self.description = self.simple_description_matcher.match(self.verbose_description).group(1)
         except IndexError:
-            self.simple_description = description
+            self.description = self.verbose_description
 
     def __str__(self):
-        return '{description} (BlueSnap error code was {code})'.format(
-            code=self.code,
-            description=self.description)
+        string = self.description
+
+        if self.code is not None:
+            string += ' (BlueSnap error code was {0})'.format(self.code)
+
+        if self.status_code is not None:
+            string += ' (HTTP status code was {status_code})'.format(status_code=self.status_code)
+
+        return string
 
 
 class ImproperlyConfigured(Exception):
