@@ -422,17 +422,15 @@ class OrderTestCase(TestCase):
                 'credit-card']['card-last-four-digits'], self.credit_card_selection.card_last_four_digits)
 
     def test_shopper_with_two_credit_cards_with_invalid_selection_fails(self):
-        amount_in_pence = 150
-        amount = amount_in_pence / 100.0
-        description = 'order description'
-
         order = Order()
 
-        order_obj = order.create(
-            shopper_id=self.shopper_id_with_two_credit_cards,
-            sku_id=helper.TEST_PRODUCT_SKU_ID,
-            amount_in_pence=100,
-            credit_card=CreditCardSelection(
-                card_type=helper.DUMMY_CARD_AMEX['card_type'],
-                card_last_four_digits=helper.DUMMY_CARD_AMEX['card_number'][-4:]),
-            description=description)
+        with self.assertRaises(APIError) as e:
+            order.create(
+                shopper_id=self.shopper_id_with_two_credit_cards,
+                sku_id=helper.TEST_PRODUCT_SKU_ID,
+                amount_in_pence=100,
+                credit_card=CreditCardSelection(
+                    card_type=helper.DUMMY_CARD_AMEX['card_type'],
+                    card_last_four_digits=helper.DUMMY_CARD_AMEX['card_number'][-4:]))
+        self.assertEqual(e.exception.description,
+                         'The order failed because shopper payment details were incorrect or insufficient.')
