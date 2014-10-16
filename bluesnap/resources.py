@@ -109,7 +109,7 @@ class Shopper(Resource):
 class Order(Resource):
     path = '/services/2/orders'
 
-    def create(self, shopper_id, sku_id, amount_in_pence, credit_card, description=None):
+    def create(self, shopper_id, sku_id, amount_in_pence, credit_card=None, description=None):
         """
         :type shopper_id: int or str
         :type sku_id: int or str
@@ -127,11 +127,15 @@ class Order(Resource):
         if description is not None:
             order.append(getattr(E, 'soft-descriptor')(description))
 
+        ordering_shopper = []
+        if credit_card is not None:
+            ordering_shopper.append(credit_card.to_xml())
+
         order_element = E.order(
             getattr(E, 'ordering-shopper')(
                 getattr(E, 'shopper-id')(str(shopper_id)),
                 models.WebInfo().to_xml(),
-                credit_card.to_xml()
+                *ordering_shopper
             ),
             E.cart(
                 getattr(E, 'cart-item')(

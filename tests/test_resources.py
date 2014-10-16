@@ -371,17 +371,25 @@ class OrderTestCase(TestCase):
     def test_shopper_without_credit_card_creating_order_fails(self):
         order = Order()
 
+        # Without credit card selection
+        with self.assertRaises(APIError) as e:
+            order.create(
+                shopper_id=self.shopper_id_without_credit_card,
+                sku_id=helper.TEST_PRODUCT_SKU_ID,
+                amount_in_pence=100)
+        self.assertEqual(e.exception.code, '15009')
+        self.assertEqual(e.exception.description, 'Order creation failure, since no payment information was provided.')
+
+        # With bogus credit card selection
         with self.assertRaises(APIError) as e:
             order.create(
                 shopper_id=self.shopper_id_without_credit_card,
                 sku_id=helper.TEST_PRODUCT_SKU_ID,
                 amount_in_pence=100,
                 credit_card=self.credit_card_selection)
-        # TODO raise a more informative exception instead of a generic one
-        self.assertListEqual(
-            e.exception.messages,
-            [{'code': '15009',
-              'description': 'Order creation failure, since no payment information was provided.'}])
+        self.assertIsNone(e.exception.code)
+        self.assertEqual(e.exception.description,
+                         'The order failed because shopper payment details were incorrect or insufficient.')
 
     def test_shopper_with_two_credit_cards_with_valid_selection_succeeds(self):
         amount_in_pence = 150
