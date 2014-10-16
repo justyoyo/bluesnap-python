@@ -22,9 +22,24 @@ class ShopperTestCase(TestCase):
             country='gb',
             phone='07777777777')
 
-        self.credit_card = PlainCreditCard(**helper.DUMMY_CARD_VISA)
-        self.second_credit_card = PlainCreditCard(**helper.DUMMY_CARD_MASTERCARD)
-        self.third_credit_card = PlainCreditCard(**helper.DUMMY_CARD_AMEX)
+        self.credit_card = PlainCreditCard(
+            card_type=helper.DUMMY_CARD_VISA['card_type'],
+            expiration_month=helper.DUMMY_CARD_VISA['expiration_month'],
+            expiration_year=helper.DUMMY_CARD_VISA['expiration_year'],
+            card_number=helper.DUMMY_CARD_VISA['card_number'],
+            security_code=helper.DUMMY_CARD_VISA['security_code'])
+        self.second_credit_card = PlainCreditCard(
+            card_type=helper.DUMMY_CARD_MASTERCARD['card_type'],
+            expiration_month=helper.DUMMY_CARD_MASTERCARD['expiration_month'],
+            expiration_year=helper.DUMMY_CARD_MASTERCARD['expiration_year'],
+            card_number=helper.DUMMY_CARD_MASTERCARD['card_number'],
+            security_code=helper.DUMMY_CARD_MASTERCARD['security_code'])
+        self.third_credit_card = PlainCreditCard(
+            card_type=helper.DUMMY_CARD_AMEX['card_type'],
+            expiration_month=helper.DUMMY_CARD_AMEX['expiration_month'],
+            expiration_year=helper.DUMMY_CARD_AMEX['expiration_year'],
+            card_number=helper.DUMMY_CARD_AMEX['card_number'],
+            security_code=helper.DUMMY_CARD_AMEX['security_code'])
 
     def test_create_with_valid_contact_info_returning_id(self):
         shopper = Shopper()
