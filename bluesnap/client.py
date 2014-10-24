@@ -109,7 +109,7 @@ class Client(object):
                 body = xmltodict.parse(response.content)
             except ExpatError:
                 # Cannot parse body as XML, could be a text
-                raise APIError(response.content, status_code=response.status_code)
+                raise APIError(description=response.content, status_code=response.status_code)
 
         if not (200 <= response.status_code < 300):
             self._handle_api_error(response, body)
