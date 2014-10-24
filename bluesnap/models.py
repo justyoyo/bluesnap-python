@@ -17,7 +17,13 @@ class AbstractCreditCard(Model):
 
         self.card_type = card_type
         self.expiration_month = expiration_month
-        self.expiration_year = expiration_year
+
+        if type(expiration_year) == int and expiration_year < 100:
+            self.expiration_year = expiration_year + 2000
+        elif type(expiration_year) == str and len(expiration_year) < 2:
+            self.expiration_year = '20' + expiration_year
+        else:
+            self.expiration_year = expiration_year
 
 
 class PlainCreditCard(AbstractCreditCard):
