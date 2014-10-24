@@ -9,6 +9,7 @@ class ClientTestCase(unittest.TestCase):
         'password': 'password',
         'default_store_id': '1',
         'seller_id': '1',
+        'default_currency': 'GBP'
     }
 
     def setUp(self):
