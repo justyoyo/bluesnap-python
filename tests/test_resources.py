@@ -83,10 +83,20 @@ class ShopperTestCase(TestCase):
         shopper = Shopper()
 
         # TODO raise a more informative exception instead of a generic one
-        with self.assertRaisesRegexp(APIError, 'Seller \d+ encountered a problem creating a new shopper due to incorrect input.'):
+        try:
             shopper.create(
                 contact_info=ContactInfo(email=''),
-                credit_card=self.credit_card)
+                credit_card=self.credit_card
+            )
+            self.assertTrue(False, 'APIError not raised')
+        except APIError as e:
+            self.assertEqual(e.status_code, 400)
+            self.assertEqual(e.description, 'None')
+            self.assertGreater(len(e.messages), 1)
+            self.assertEqual(
+                e.messages[0]['description'],
+                'Seller 397608 encountered a problem creating a new shopper due to incorrect input.'
+            )
 
     def test_find_by_shopper_id(self):
         shopper = Shopper()
@@ -122,23 +132,35 @@ class ShopperTestCase(TestCase):
 
     def test_find_by_bogus_shopper_id_and_seller_shopper_id_raises_exception(self):
         # TODO raise a more informative exception instead of a generic one
-        with self.assertRaisesRegexp(APIError, 'User: API_\d+ is not authorized to view shopper: 0'):
+        try:
             Shopper().find_by_shopper_id('0')
+            self.assertTrue(False, 'APIError not raised')
+        except APIError as e:
+            self.assertEqual(e.status_code, 403)
+            self.assertRegexpMatches(e.description, 'User: API_\d+ is not authorized to view shopper: 0')
 
         # TODO raise a more informative exception instead of a generic one
-        with self.assertRaisesRegexp(
-                APIError,
-                'User: API_\d+ is not authorized to view seller shopper: bogus_seller_shopper_id'):
+        try:
             Shopper().find_by_seller_shopper_id('bogus_seller_shopper_id')
+            self.assertTrue(False, 'APIError not raised')
+        except APIError as e:
+            self.assertEqual(e.status_code, 403)
+            self.assertRegexpMatches(e.description, 'User: API_\d+ is not authorized to view seller shopper: bogus_seller_shopper_id')
 
     def test_update_fails_with_invalid_shopper_id(self):
         shopper = Shopper()
 
         # TODO raise a more informative exception instead of a generic one
-        with self.assertRaisesRegexp(APIError, 'User: API_\d+ is not authorized to update shopper: 0'):
+
+        try:
             shopper.update(
                 '0',
-                contact_info=self.contact_info)
+                contact_info=self.contact_info
+            )
+            self.assertTrue(False, 'APIError not raised')
+        except APIError as e:
+            self.assertEqual(e.status_code, 403)
+            self.assertRegexpMatches(e.description, 'User: API_\d+ is not authorized to update shopper: 0')
 
     def test_add_credit_card(self):
         # Create a shopper, ensuring no credit card info was added
@@ -280,8 +302,7 @@ class ShopperTestCase(TestCase):
                     security_code=helper.DUMMY_CARD_AMEX__AUTH_FAIL['security_code']))
         self.assertEqual(e.exception.code, '14002')
         self.assertEqual(e.exception.description,
-                         'Order creation could not be completed because of payment processing failure: 430285 '
-                         '- Authorization has failed for this transaction. '
+                         'Authorization has failed for this transaction. '
                          'Please try again or contact your bank for assistance')
 
 
