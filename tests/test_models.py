@@ -55,11 +55,9 @@ class EncryptedCreditCardTestCase(TestCase):
 
         self.xml = self.instance.to_xml()
 
-    # Test disabled because XML Schema given is incorrect as it does not correspond with that in the API docs.
-    #
-    # def test_to_xml_returns_correct_schema(self):
-    #     # Validate XML schema
-    #     get_xml_schema('credit-card-info.xsd').assertValid(self.xml)
+    def test_to_xml_returns_correct_schema(self):
+        # Validate XML schema
+        get_xml_schema('credit-card-info.xsd').assertValid(self.xml)
 
     def test_to_xml_sets_correct_values(self):
         self.assertEqual(self.xml.tag, '{http://ws.plimus.com}credit-card')
