@@ -120,7 +120,7 @@ DUMMY_CARDS = (
     ('Visa', DUMMY_CARD_VISA),
     ('MasterCard', DUMMY_CARD_MASTERCARD),
     ('MasterCard 2', DUMMY_CARD_MASTERCARD_2),
-    ('American Express', DUMMY_CARD_AMEX)
+    ('American Express', DUMMY_CARD_AMEX),
     ('Discover', DUMMY_CARD_DISCOVER)
 )
 
