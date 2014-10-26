@@ -4,13 +4,49 @@ from unittest import TestCase
 from mock import MagicMock
 
 from bluesnap import exceptions
-from bluesnap.models import ContactInfo, PlainCreditCard, CreditCardSelection
+from bluesnap.models import ContactInfo, PlainCreditCard, CreditCardSelection, EncryptedCreditCard
 from bluesnap.resources import Order, Shopper
 import helper
 
 
 class ShopperTestCase(TestCase):
     maxDiff = None
+
+    @property
+    def encrypted_credit_card(self):
+        if not hasattr(self, '_encrypted_credit_card'):
+            self._encrypted_credit_card = EncryptedCreditCard(
+                card_type=helper.DUMMY_CARD_VISA['card_type'],
+                expiration_month=helper.DUMMY_CARD_VISA['expiration_month'],
+                expiration_year=helper.DUMMY_CARD_VISA['expiration_year'],
+                encrypted_card_number=helper.DUMMY_CARD_VISA['encrypted_card_number'],
+                encrypted_security_code=helper.DUMMY_CARD_VISA['encrypted_security_code']
+            )
+        return self._encrypted_credit_card
+
+    @property
+    def encrypted_second_credit_card(self):
+        if not hasattr(self, '_encrypted_second_credit_card'):
+            self._encrypted_second_credit_card = EncryptedCreditCard(
+                card_type=helper.DUMMY_CARD_MASTERCARD['card_type'],
+                expiration_month=helper.DUMMY_CARD_MASTERCARD['expiration_month'],
+                expiration_year=helper.DUMMY_CARD_MASTERCARD['expiration_year'],
+                encrypted_card_number=helper.DUMMY_CARD_MASTERCARD['encrypted_card_number'],
+                encrypted_security_code=helper.DUMMY_CARD_MASTERCARD['encrypted_security_code']
+            )
+        return self._encrypted_second_credit_card
+
+    @property
+    def encrypted_third_credit_card(self):
+        if not hasattr(self, '_encrypted_third_credit_card'):
+            self._encrypted_third_credit_card = EncryptedCreditCard(
+                card_type=helper.DUMMY_CARD_AMEX['card_type'],
+                expiration_month=helper.DUMMY_CARD_AMEX['expiration_month'],
+                expiration_year=helper.DUMMY_CARD_AMEX['expiration_year'],
+                encrypted_card_number=helper.DUMMY_CARD_AMEX['encrypted_card_number'],
+                encrypted_security_code=helper.DUMMY_CARD_AMEX['encrypted_security_code']
+            )
+        return self._encrypted_third_credit_card
 
     def setUp(self):
         helper.configure_client()
@@ -79,6 +115,21 @@ class ShopperTestCase(TestCase):
         self.assertEqual(shopper_contact_info['last-name'], self.contact_info.last_name)
         self.assertEqual(shopper_info['store-id'], shopper.client.default_store_id)
 
+    def test_create_with_valid_contact_info_and_encrypted_credit_card(self):
+        shopper = Shopper()
+
+        shopper_id = shopper.create(
+            contact_info=self.contact_info,
+            credit_card=self.encrypted_credit_card)
+        shopper_obj = shopper.find_by_shopper_id(shopper_id)
+
+        self.assertIsInstance(shopper_obj, dict)
+        shopper_info = shopper_obj['shopper-info']
+        shopper_contact_info = shopper_info['shopper-contact-info']
+        self.assertEqual(shopper_contact_info['first-name'], self.contact_info.first_name)
+        self.assertEqual(shopper_contact_info['last-name'], self.contact_info.last_name)
+        self.assertEqual(shopper_info['store-id'], shopper.client.default_store_id)
+
     def test_create_with_invalid_parameters(self):
         shopper = Shopper()
 
@@ -87,6 +138,25 @@ class ShopperTestCase(TestCase):
             shopper.create(
                 contact_info=ContactInfo(email=''),
                 credit_card=self.credit_card
+            )
+            self.assertTrue(False, 'APIError not raised')
+        except APIError as e:
+            self.assertEqual(e.status_code, 400)
+            self.assertEqual(e.description, 'None')
+            self.assertGreater(len(e.messages), 1)
+            self.assertEqual(
+                e.messages[0]['description'],
+                'Seller 397608 encountered a problem creating a new shopper due to incorrect input.'
+            )
+
+    def test_create_with_invalid_parameters_encrypted(self):
+        shopper = Shopper()
+
+        # TODO raise a more informative exception instead of a generic one
+        try:
+            shopper.create(
+                contact_info=ContactInfo(email=''),
+                credit_card=self.encrypted_credit_card
             )
             self.assertTrue(False, 'APIError not raised')
         except APIError as e:
@@ -227,6 +297,72 @@ class ShopperTestCase(TestCase):
              {'card-last-four-digits': self.third_credit_card.card_number[-4:],
               'card-type': self.third_credit_card.card_type}])
 
+    def test_add_encrypted_credit_card(self):
+        # Create a shopper, ensuring no credit card info was added
+        shopper = Shopper()
+        shopper_id = shopper.create(
+            contact_info=self.contact_info)
+        shopper_obj = shopper.find_by_shopper_id(shopper_id)
+        self.assertIsNone(shopper_obj['shopper-info']['payment-info']['credit-cards-info'])
+
+        # Add first credit card
+        update_successful = shopper.update(
+            shopper_id=shopper_id,
+            contact_info=self.contact_info,
+            credit_card=self.encrypted_credit_card)
+        self.assertTrue(update_successful)
+
+        shopper_obj = shopper.find_by_shopper_id(shopper_id)
+        credit_card_info = shopper_obj['shopper-info']['payment-info']['credit-cards-info']['credit-card-info']
+        self.assertIsInstance(credit_card_info['credit-card'], dict)
+        # Since credit_card and encrypted_credit_card are the same I can get the last 4 digits from the non encrypted
+        self.assertEqual(credit_card_info['credit-card']['card-last-four-digits'], self.credit_card.card_number[-4:])
+        self.assertEqual(credit_card_info['credit-card']['card-type'], self.encrypted_credit_card.card_type)
+
+        # Add second credit card
+        update_successful = shopper.update(
+            shopper_id=shopper_id,
+            contact_info=self.contact_info,
+            credit_card=self.encrypted_second_credit_card)
+        self.assertTrue(update_successful)
+
+        shopper_obj = shopper.find_by_shopper_id(shopper_id)
+        credit_cards_info = shopper_obj['shopper-info']['payment-info']['credit-cards-info']['credit-card-info']
+        self.assertIsInstance(credit_cards_info, list)
+        self.assertEqual(len(credit_cards_info), 2)
+
+        # The order of the credit cards is not known, so we sort the items before comparing.
+        cards = map(lambda c: dict(c['credit-card']), credit_cards_info)
+        self.assertItemsEqual(
+            cards,
+            [{'card-last-four-digits': self.credit_card.card_number[-4:],
+              'card-type': self.encrypted_credit_card.card_type},
+             {'card-last-four-digits': self.second_credit_card.card_number[-4:],
+              'card-type': self.encrypted_second_credit_card.card_type}])
+
+        # Add third credit card
+        update_successful = shopper.update(
+            shopper_id=shopper_id,
+            contact_info=self.contact_info,
+            credit_card=self.encrypted_third_credit_card)
+        self.assertTrue(update_successful)
+
+        shopper_obj = shopper.find_by_shopper_id(shopper_id)
+        credit_cards_info = shopper_obj['shopper-info']['payment-info']['credit-cards-info']['credit-card-info']
+        self.assertIsInstance(credit_cards_info, list)
+        self.assertEqual(len(credit_cards_info), 3)
+
+        # Last added credit card displays first
+        cards = map(lambda c: dict(c['credit-card']), credit_cards_info)
+        self.assertItemsEqual(
+            cards,
+            [{'card-last-four-digits': self.credit_card.card_number[-4:],
+              'card-type': self.encrypted_credit_card.card_type},
+             {'card-last-four-digits': self.second_credit_card.card_number[-4:],
+              'card-type': self.encrypted_second_credit_card.card_type},
+             {'card-last-four-digits': self.third_credit_card.card_number[-4:],
+              'card-type': self.encrypted_third_credit_card.card_type}])
+
     def test_add_invalid_credit_card(self):
         # Create a shopper, ensuring no credit card info was added
         shopper = Shopper()
@@ -305,6 +441,84 @@ class ShopperTestCase(TestCase):
                          'Authorization has failed for this transaction. '
                          'Please try again or contact your bank for assistance')
 
+    def test_add_invalid_encrypted_credit_card(self):
+        # Create a shopper, ensuring no credit card info was added
+        shopper = Shopper()
+        shopper_id = shopper.create(
+            contact_info=self.contact_info)
+        shopper_obj = shopper.find_by_shopper_id(shopper_id)
+        self.assertIsNone(shopper_obj['shopper-info']['payment-info']['credit-cards-info'])
+
+        # Add expired card
+        with self.assertRaises(exceptions.CardError) as e:
+            shopper.update(
+                shopper_id=shopper_id,
+                contact_info=self.contact_info,
+                credit_card=EncryptedCreditCard(
+                    card_type=helper.DUMMY_CARD_VISA__EXPIRED['card_type'],
+                    expiration_month=helper.DUMMY_CARD_VISA__EXPIRED['expiration_month'],
+                    expiration_year=helper.DUMMY_CARD_VISA__EXPIRED['expiration_year'],
+                    encrypted_card_number=helper.DUMMY_CARD_VISA__EXPIRED['encrypted_card_number'],
+                    encrypted_security_code=helper.DUMMY_CARD_VISA__EXPIRED['encrypted_security_code']))
+        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.description,
+                         'The expiration date entered is invalid. Enter valid expiration date or try another card')
+        self.assertEqual(e.exception.verbose_description,
+                         'Order creation could not be completed because of payment processing failure: 430306 '
+                         '- The expiration date entered is invalid. Enter valid expiration date or try another card')
+
+        # Add card with insufficient funds
+        with self.assertRaises(exceptions.CardError) as e:
+            shopper.update(
+                shopper_id=shopper_id,
+                contact_info=self.contact_info,
+                credit_card=EncryptedCreditCard(
+                    card_type=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['card_type'],
+                    expiration_month=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['expiration_month'],
+                    expiration_year=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['expiration_year'],
+                    encrypted_card_number=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['encrypted_card_number'],
+                    encrypted_security_code=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['encrypted_security_code']))
+        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.description,
+                         'Insufficient funds. Please use another card or contact your bank for assistance')
+        self.assertEqual(e.exception.verbose_description,
+                         'Order creation could not be completed because of payment processing failure: 430360 '
+                         '- Insufficient funds. Please use another card or contact your bank for assistance')
+
+        # Add card with invalid number
+        with self.assertRaises(exceptions.CardError) as e:
+            shopper.update(
+                shopper_id=shopper_id,
+                contact_info=self.contact_info,
+                credit_card=EncryptedCreditCard(
+                    card_type=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['card_type'],
+                    expiration_month=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['expiration_month'],
+                    expiration_year=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['expiration_year'],
+                    encrypted_card_number=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['encrypted_card_number'],
+                    encrypted_security_code=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['encrypted_security_code']))
+        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.description,
+                         'Invalid card number. Please check the number and try again, or use a different card')
+        self.assertEqual(e.exception.verbose_description,
+                         'Order creation could not be completed because of payment processing failure: 430330 '
+                         '- Invalid card number. Please check the number and try again, or use a different card')
+
+        # Add card with invalid number
+        with self.assertRaises(exceptions.CardError) as e:
+            shopper.update(
+                shopper_id=shopper_id,
+                contact_info=self.contact_info,
+                credit_card=EncryptedCreditCard(
+                    card_type=helper.DUMMY_CARD_AMEX__AUTH_FAIL['card_type'],
+                    expiration_month=helper.DUMMY_CARD_AMEX__AUTH_FAIL['expiration_month'],
+                    expiration_year=helper.DUMMY_CARD_AMEX__AUTH_FAIL['expiration_year'],
+                    encrypted_card_number=helper.DUMMY_CARD_AMEX__AUTH_FAIL['encrypted_card_number'],
+                    encrypted_security_code=helper.DUMMY_CARD_AMEX__AUTH_FAIL['encrypted_security_code']))
+        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.description,
+                         'Authorization has failed for this transaction. '
+                         'Please try again or contact your bank for assistance')
+
 
 class OrderTestCase(TestCase):
     def setUp(self):
@@ -325,6 +539,13 @@ class OrderTestCase(TestCase):
             card_number=helper.DUMMY_CARD_VISA['card_number'],
             security_code=helper.DUMMY_CARD_VISA['security_code'])
 
+        self.encrypted_credit_card = EncryptedCreditCard(
+            card_type=helper.DUMMY_CARD_VISA['card_type'],
+            expiration_month=helper.DUMMY_CARD_VISA['expiration_month'],
+            expiration_year=helper.DUMMY_CARD_VISA['expiration_year'],
+            encrypted_card_number=helper.DUMMY_CARD_VISA['encrypted_card_number'],
+            encrypted_security_code=helper.DUMMY_CARD_VISA['encrypted_security_code'])
+
         self.credit_card_selection = CreditCardSelection(
             card_type=helper.DUMMY_CARD_VISA['card_type'],
             card_last_four_digits=helper.DUMMY_CARD_VISA['card_number'][-4:])
@@ -334,6 +555,10 @@ class OrderTestCase(TestCase):
         self.shopper_id_with_one_credit_card = shopper.create(
             contact_info=self.contact_info,
             credit_card=self.credit_card)
+
+        self.shopper_id_with_one_encrypted_credit_card = shopper.create(
+            contact_info=self.contact_info,
+            credit_card=self.encrypted_credit_card)
 
         self.shopper_id_without_credit_card = shopper.create(
             contact_info=self.contact_info)
@@ -350,6 +575,19 @@ class OrderTestCase(TestCase):
                 expiration_year=helper.DUMMY_CARD_MASTERCARD['expiration_year'],
                 card_number=helper.DUMMY_CARD_MASTERCARD['card_number'],
                 security_code=helper.DUMMY_CARD_MASTERCARD['security_code'])))
+
+        self.shopper_id_with_two_encrypted_credit_cards = shopper.create(
+            contact_info=self.contact_info,
+            credit_card=self.encrypted_credit_card)
+        self.assertTrue(shopper.update(
+            shopper_id=self.shopper_id_with_two_encrypted_credit_cards,
+            contact_info=self.contact_info,
+            credit_card=EncryptedCreditCard(
+                card_type=helper.DUMMY_CARD_MASTERCARD['card_type'],
+                expiration_month=helper.DUMMY_CARD_MASTERCARD['expiration_month'],
+                expiration_year=helper.DUMMY_CARD_MASTERCARD['expiration_year'],
+                encrypted_card_number=helper.DUMMY_CARD_MASTERCARD['encrypted_card_number'],
+                encrypted_security_code=helper.DUMMY_CARD_MASTERCARD['encrypted_security_code'])))
 
     def test_shopper_with_credit_card_creating_order_succeeds(self):
         amount_in_pence = 150
@@ -388,6 +626,44 @@ class OrderTestCase(TestCase):
         self.assertEqual(
             order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
                 'credit-card']['card-last-four-digits'], self.credit_card.card_number[-4:])
+
+    def test_shopper_with_encrypted_credit_card_creating_order_succeeds(self):
+        amount_in_pence = 150
+        amount = amount_in_pence / 100.0
+        description = 'order description'
+
+        order = Order()
+
+        order_obj = order.create(
+            shopper_id=self.shopper_id_with_one_encrypted_credit_card,
+            sku_id=helper.TEST_PRODUCT_SKU_ID,
+            amount_in_pence=amount_in_pence,
+            credit_card=self.credit_card_selection,
+            description=description)
+
+        self.assertIsInstance(order_obj, dict)
+        self.assertEqual(order_obj['ordering-shopper']['shopper-id'], self.shopper_id_with_one_encrypted_credit_card)
+        self.assertEqual(order_obj['cart']['charged-currency'], order.client.currency)
+        self.assertEqual(order_obj['cart']['cart-item']['sku']['sku-id'], helper.TEST_PRODUCT_SKU_ID)
+        self.assertEqual(int(order_obj['cart']['cart-item']['quantity']), 1)
+        self.assertEqual(float(order_obj['cart']['cart-item']['item-sub-total']), amount)
+        self.assertEqual(float(order_obj['cart']['tax']), 0.0)
+        self.assertEqual(int(order_obj['cart']['tax-rate']), 0)
+        self.assertEqual(float(order_obj['cart']['total-cart-cost']), amount)
+        self.assertIsNotNone(order_obj['post-sale-info']['invoices']['invoice']['invoice-id'])
+        self.assertIsNotNone(order_obj['post-sale-info']['invoices']['invoice']['url'])
+        self.assertIsNotNone(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'soft-descriptor'], description)
+        self.assertEqual(float(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'amount']), amount)
+        self.assertEqual(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'currency'], order.client.currency)
+        self.assertEqual(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'credit-card']['card-last-four-digits'], self.credit_card_selection.card_last_four_digits)
 
     def test_shopper_without_credit_card_creating_order_fails(self):
         order = Order()
@@ -428,6 +704,44 @@ class OrderTestCase(TestCase):
 
         self.assertIsInstance(order_obj, dict)
         self.assertEqual(order_obj['ordering-shopper']['shopper-id'], self.shopper_id_with_two_credit_cards)
+        self.assertEqual(order_obj['cart']['charged-currency'], order.client.currency)
+        self.assertEqual(order_obj['cart']['cart-item']['sku']['sku-id'], helper.TEST_PRODUCT_SKU_ID)
+        self.assertEqual(int(order_obj['cart']['cart-item']['quantity']), 1)
+        self.assertEqual(float(order_obj['cart']['cart-item']['item-sub-total']), amount)
+        self.assertEqual(float(order_obj['cart']['tax']), 0.0)
+        self.assertEqual(int(order_obj['cart']['tax-rate']), 0)
+        self.assertEqual(float(order_obj['cart']['total-cart-cost']), amount)
+        self.assertIsNotNone(order_obj['post-sale-info']['invoices']['invoice']['invoice-id'])
+        self.assertIsNotNone(order_obj['post-sale-info']['invoices']['invoice']['url'])
+        self.assertIsNotNone(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'soft-descriptor'], description)
+        self.assertEqual(float(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'amount']), amount)
+        self.assertEqual(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'currency'], order.client.currency)
+        self.assertEqual(
+            order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
+                'credit-card']['card-last-four-digits'], self.credit_card_selection.card_last_four_digits)
+
+    def test_shopper_with_two_encrypted_credit_cards_with_valid_selection_succeeds(self):
+        amount_in_pence = 150
+        amount = amount_in_pence / 100.0
+        description = 'order description'
+
+        order = Order()
+
+        order_obj = order.create(
+            shopper_id=self.shopper_id_with_two_encrypted_credit_cards,
+            sku_id=helper.TEST_PRODUCT_SKU_ID,
+            amount_in_pence=amount_in_pence,
+            credit_card=self.credit_card_selection,
+            description=description)
+
+        self.assertIsInstance(order_obj, dict)
+        self.assertEqual(order_obj['ordering-shopper']['shopper-id'], self.shopper_id_with_two_encrypted_credit_cards)
         self.assertEqual(order_obj['cart']['charged-currency'], order.client.currency)
         self.assertEqual(order_obj['cart']['cart-item']['sku']['sku-id'], helper.TEST_PRODUCT_SKU_ID)
         self.assertEqual(int(order_obj['cart']['cart-item']['quantity']), 1)
