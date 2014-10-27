@@ -12,7 +12,7 @@ class APIError(Exception):
         self.status_code = status_code
 
     def __str__(self):
-        if self.description is not None:
+        if self.description not in (None, 'None'):
             string = self.description
         else:
             if isinstance(self.messages, str) or isinstance(self.messages, unicode):
