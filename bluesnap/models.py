@@ -160,6 +160,7 @@ class WebInfo(Model):
 class ContactInfo(Model):
     ELEMENT_NAME = None
     NONE_PLACEHOLDER = '(Empty)'
+    DEFAULT_COUNTRY = 'GB'
 
     def __init__(self, email,
                  first_name=None, last_name=None, address_1=None, city=None,
@@ -174,7 +175,7 @@ class ContactInfo(Model):
         self.address_1 = address_1 or self.NONE_PLACEHOLDER
         self.city = city or self.NONE_PLACEHOLDER
         self.zip = zip or self.NONE_PLACEHOLDER
-        self.country = country or self.NONE_PLACEHOLDER
+        self.country = country or self.DEFAULT_COUNTRY
         self.phone = phone or self.NONE_PLACEHOLDER
 
     def to_xml(self, element_name=None):
