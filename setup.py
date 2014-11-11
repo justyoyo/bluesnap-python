@@ -7,6 +7,12 @@ with open('bluesnap/version.py') as f:
 with open('README.md') as f:
     long_description = f.read()
 
+requires = [
+    'lxml==3.4.0',
+    'requests==2.4.3',
+    'xmltodict==0.9.0'
+]
+
 setup(
     name='bluesnap',
     version=__version__,
@@ -17,10 +23,7 @@ setup(
     description='Python module to interact with Bluesnap API.',
     long_description=long_description,
     packages=find_packages(),
-    install_requires=[
-        'lxml==3.4.0',
-        'requests==2.4.3',
-        'xmltodict==0.9.0'
-    ],
+    install_requires=requires,
+    setup_requires=requires,
     test_suite='nose.collector'
 )
