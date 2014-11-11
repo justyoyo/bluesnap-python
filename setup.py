@@ -8,8 +8,8 @@ with open('README.md') as f:
     long_description = f.read()
 
 requires = [
-    'lxml==3.4.0',
-    'requests==2.4.3',
+    'lxml==3.3.4',
+    'requests==2.2.1',
     'xmltodict==0.9.0'
 ]
 
