@@ -38,8 +38,8 @@ class CardError(Exception):
         if isinstance(description, unicode):
             description = description.encode('ascii', 'ignore')
         self.verbose_description = description
-        self.code = code
-        self.status_code = status_code
+        self.code = str(code)
+        self.status_code = str(status_code)
 
         # Extract simple description
         try:
