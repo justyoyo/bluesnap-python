@@ -42,7 +42,7 @@ class CardError(Exception):
         # Extract simple description
         try:
             self.description = self.simple_description_matcher.match(self.verbose_description).group(1)
-        except IndexError:
+        except (AttributeError, IndexError):
             self.description = self.verbose_description
 
     def __str__(self):
