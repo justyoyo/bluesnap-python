@@ -3,7 +3,7 @@ from lxml.builder import ElementMaker
 from requests.auth import HTTPBasicAuth
 import requests
 import xmltodict
-
+from logging import Logger
 from exceptions import ImproperlyConfigured, ValidationError, APIError, CardError
 
 
@@ -41,7 +41,9 @@ class Client(object):
                  # Default currency
                  default_currency,
                  # Locale
-                 locale='en'):
+                 locale='en',
+                 # Logger
+                 logger=None):
         if env not in self.ENDPOINTS:
             raise ValueError('env not in {0}'.format(self.ENDPOINTS.keys()))
 
@@ -52,6 +54,8 @@ class Client(object):
         self.seller_id = seller_id
         self.default_currency = default_currency.upper()
         self.locale = locale
+
+        self.logger = logger if issubclass(logger, Logger) else None
 
         # ElementMaker for XML builder
         self.E = ElementMaker(namespace=self.NAMESPACE,
@@ -92,10 +96,17 @@ class Client(object):
 
         request = getattr(requests, method.lower())  # requests.{get,post,put,delete}
 
+        if self.logger:
+            self.logger.info('\n\t'.join(('Bluesnap request:', url, headers, data)))
+
         response = request(url,
                            headers=headers,
                            auth=self.http_basic_auth,
                            data=data)
+
+        if self.logger:
+            self.logger.info('\n\tBluesnap response:\n\tCode: ' + str(response.status_code)
+                             + '\n\tContent: ' + response.content)
 
         body = self._process_response_body(response)
 
