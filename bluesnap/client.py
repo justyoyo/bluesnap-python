@@ -55,7 +55,7 @@ class Client(object):
         self.default_currency = default_currency.upper()
         self.locale = locale
 
-        self.logger = logger if issubclass(logger, Logger) else None
+        self.logger = logger if isinstance(logger, Logger) else None
 
         # ElementMaker for XML builder
         self.E = ElementMaker(namespace=self.NAMESPACE,
