@@ -136,7 +136,11 @@ class Client(object):
         :param body: Messages may contain in <xml/> or <messages><message/></messages>
         """
         try:  # <xml>message</xml>
-            raise APIError(description=body['xml'],
+            if body:
+                description = body['xml']
+            else:
+                description = '<no response body>'
+            raise APIError(description=description,
                            status_code=response.status_code)
         except (KeyError, ValueError):
             try:  # <messages><message><description>message</description></message></messages>
