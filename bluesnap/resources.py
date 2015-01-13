@@ -43,7 +43,8 @@ class Shopper(Resource):
             seller_shopper_id=seller_shopper_id,
             seller_id=self.client.seller_id))
 
-    def _create_shopper_element(self, contact_info, credit_card=None, seller_shopper_id=None):
+    def _create_shopper_element(self, contact_info, credit_card=None,
+                                seller_shopper_id=None, client_ip=None):
         # noinspection PyPep8Naming
         E = self.client.E
 
@@ -69,10 +70,11 @@ class Shopper(Resource):
                 ),
                 *shopper_info
             ),
-            models.WebInfo().to_xml()
+            models.WebInfo(ip=client_ip).to_xml()
         )
 
-    def create(self, contact_info, credit_card=None, seller_shopper_id=None):
+    def create(self, contact_info, credit_card=None, seller_shopper_id=None,
+               client_ip=None):
         """
         Creates a new shopper
         :type contact_info: models.ContactInfo
@@ -80,7 +82,8 @@ class Shopper(Resource):
         :param seller_shopper_id: Seller-specific shopper id
         :return: Returns the newly created BlueSnap shopper id
         """
-        shopper_element = self._create_shopper_element(contact_info, credit_card, seller_shopper_id)
+        shopper_element = self._create_shopper_element(
+            contact_info, credit_card, seller_shopper_id, client_ip)
         data = etree.tostring(shopper_element)
 
         response, body = self.request('POST', self.shoppers_path, data=data)
