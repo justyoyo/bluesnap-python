@@ -112,7 +112,8 @@ class Shopper(Resource):
 class Order(Resource):
     path = '/services/2/orders'
 
-    def create(self, shopper_id, sku_id, amount_in_pence, credit_card=None, description=None):
+    def create(self, shopper_id, sku_id, amount_in_pence, credit_card=None,
+               description=None, client_ip=None):
         """
         :type shopper_id: int or str
         :type sku_id: int or str
@@ -137,7 +138,7 @@ class Order(Resource):
         order_element = E.order(
             getattr(E, 'ordering-shopper')(
                 getattr(E, 'shopper-id')(str(shopper_id)),
-                models.WebInfo().to_xml(),
+                models.WebInfo(ip=client_ip).to_xml(),
                 *ordering_shopper
             ),
             E.cart(
