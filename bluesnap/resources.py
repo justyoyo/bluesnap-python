@@ -94,7 +94,7 @@ class Shopper(Resource):
 
         return shopper_id
 
-    def update(self, shopper_id, contact_info, credit_card=None):
+    def update(self, shopper_id, contact_info, credit_card=None, client_ip=None):
         """
         Updates an existing shopper
         :param shopper_id: BlueSnap shopper id
@@ -102,7 +102,8 @@ class Shopper(Resource):
         :type credit_card: models.AbstractCreditCard
         :rtype: bool
         """
-        shopper_element = self._create_shopper_element(contact_info, credit_card)
+        shopper_element = self._create_shopper_element(
+            contact_info, credit_card, client_ip)
         data = etree.tostring(shopper_element)
 
         response, _ = self.request('PUT', self.shopper_path.format(shopper_id=shopper_id), data=data)
