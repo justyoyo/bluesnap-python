@@ -2,8 +2,9 @@
 
 A Python module to interact with Bluesnap API.
 
-## Running tests
+Travis status:
 
+[![Build Status](https://magnum.travis-ci.com/justyoyo/bluesnap-python.svg?token=pHFjvPjQV7qD6qKKb1HD&branch=master)](https://magnum.travis-ci.com/justyoyo/bluesnap-ledger) 
 
 ## Contributing
 
@@ -15,7 +16,7 @@ and run the tests with:
 ```sh
 $ make test
 ```
-or
+or 
 ```sh
 $ nosetests tests/
 ```

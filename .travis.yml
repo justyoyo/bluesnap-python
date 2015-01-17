@@ -1,0 +1,14 @@
+language: python
+
+python:
+  - "2.7"
+
+cache:
+  directories:
+    - $HOME/virtualenv/python${TRAVIS_PYTHON_VERSION}/
+
+install:
+  - make install
+
+script:
+  - make test
