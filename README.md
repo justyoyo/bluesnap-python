@@ -4,9 +4,19 @@ A Python module to interact with Bluesnap API.
 
 ## Running tests
 
+
+## Contributing
+
+Install with:
 ```sh
-$ python setup.py develop
-$ pip install -r tests/requirements.txt
+$ make
+```
+and run the tests with:
+```sh
+$ make test
+```
+or
+```sh
 $ nosetests tests/
 ```
 
