@@ -83,7 +83,7 @@ class Shopper(Resource):
         :return: Returns the newly created BlueSnap shopper id
         """
         shopper_element = self._create_shopper_element(
-            contact_info, credit_card, seller_shopper_id, client_ip)
+            contact_info, credit_card, seller_shopper_id, client_ip=client_ip)
         data = etree.tostring(shopper_element)
 
         response, body = self.request('POST', self.shoppers_path, data=data)
@@ -103,7 +103,7 @@ class Shopper(Resource):
         :rtype: bool
         """
         shopper_element = self._create_shopper_element(
-            contact_info, credit_card, client_ip)
+            contact_info, credit_card, client_ip=client_ip)
         data = etree.tostring(shopper_element)
 
         response, _ = self.request('PUT', self.shopper_path.format(shopper_id=shopper_id), data=data)
