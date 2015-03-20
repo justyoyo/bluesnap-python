@@ -1,3 +1,5 @@
+.PHONY: install clean test
+
 install:
 	python setup.py develop
 	pip install -r tests/requirements.txt

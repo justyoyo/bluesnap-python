@@ -73,6 +73,7 @@ class EncryptedCreditCardTestCase(TestCase):
             self.assertIsNotNone(element, 'Cannot find element <{}/>'.format(NAMESPACE_PREFIX + xml_key))
             self.assertEqual(element.text, str(self.card[dict_key]))
 
+
 class CreditCardSelectionTestCase(TestCase):
     model = models.CreditCardSelection
 
