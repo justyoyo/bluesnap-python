@@ -31,19 +31,25 @@ class CardDict(dict):
     import execjs
     import os
 
-    __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-    with open(os.path.join(__location__, 'bluesnap.js')) as f:
-        code = f.read()
-    _javascript_context = execjs.compile(code)
+    # Initialise Javascript VM within Python
+    with open(os.path.join(os.path.dirname(__file__), 'bluesnap.js')) as f:
+        _js_context = execjs.compile(f.read())
 
-    @staticmethod
-    def __encrypt(data):
-        return CardDict._javascript_context.call('window.bluesnap.encrypt', data)
+    _encrypted_key_prefix = 'encrypted_'
+
+    def __encrypt(self, data):
+        return self.__class__._js_context.call('window.bluesnap.encrypt', data)
 
     def __getitem__(self, key):
-        if type(key) is str and key.startswith('encrypted_'):
-            return self.__encrypt(super(CardDict, self).__getitem__(key[10:]))
-        return super(CardDict, self).__getitem__(key)
+        try:
+            return super(CardDict, self).__getitem__(key)
+        except KeyError:
+            if key.startswith(self._encrypted_key_prefix):
+                key_without_prefix = key[len(self._encrypted_key_prefix):]
+                value = self.__encrypt(self[key_without_prefix])
+                self.__setitem__(key, value)
+                return value
+            raise
 
 
 # Dummy cards taken from
