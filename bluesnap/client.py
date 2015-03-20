@@ -97,7 +97,13 @@ class Client(object):
         request = getattr(requests, method.lower())  # requests.{get,post,put,delete}
 
         if self.logger:
-            self.logger.info('\n\t'.join(('Bluesnap request:', str(url), str(headers), str(data))))
+            self.logger.info(
+                '\n\t'.join([
+                    'Bluesnap request:',
+                    method,
+                    str(url),
+                    str(headers),
+                    str(data)]))
 
         response = request(url,
                            headers=headers,

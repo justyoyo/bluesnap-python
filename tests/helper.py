@@ -1,8 +1,11 @@
 import datetime
+import logging
 import os
 
 from lxml import etree
 
+
+logger = logging.getLogger('tests')
 
 now = datetime.datetime.now()
 future = now + datetime.timedelta(days=1)
@@ -137,7 +140,7 @@ DUMMY_CARDS = (
 
 def configure_client():
     from bluesnap import client
-    client.configure(**SANDBOX_CLIENT_CONFIG)
+    client.configure(logger=logger, **SANDBOX_CLIENT_CONFIG)
 
 
 def get_xml_schema(file_name):

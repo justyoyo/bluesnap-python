@@ -1,12 +1,14 @@
-from bluesnap.exceptions import APIError
 from unittest import TestCase
 
 from mock import MagicMock
+import responses
 
 from bluesnap import exceptions
+from bluesnap.exceptions import APIError
 from bluesnap.models import ContactInfo, PlainCreditCard, CreditCardSelection, EncryptedCreditCard
 from bluesnap.resources import Order, Shopper
 import helper
+import mocked_api
 
 
 class ShopperTestCase(TestCase):
@@ -232,6 +234,7 @@ class ShopperTestCase(TestCase):
             self.assertEqual(e.status_code, 403)
             self.assertRegexpMatches(e.description, 'User: API_\d+ is not authorized to update shopper: 0')
 
+    @mocked_api.activate
     def test_add_credit_card(self):
         # Create a shopper, ensuring no credit card info was added
         shopper = Shopper()
@@ -297,6 +300,7 @@ class ShopperTestCase(TestCase):
              {'card-last-four-digits': self.third_credit_card.card_number[-4:],
               'card-type': self.third_credit_card.card_type}])
 
+    @mocked_api.activate
     def test_add_encrypted_credit_card(self):
         # Create a shopper, ensuring no credit card info was added
         shopper = Shopper()
