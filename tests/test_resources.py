@@ -10,6 +10,9 @@ import helper
 import mocked_api
 
 
+helper.configure_client()
+
+
 class ShopperTestCase(TestCase):
     maxDiff = None
 
@@ -50,8 +53,6 @@ class ShopperTestCase(TestCase):
         return self._encrypted_third_credit_card
 
     def setUp(self):
-        helper.configure_client()
-
         self.contact_info = ContactInfo(
             first_name='John',
             last_name='Doe',
@@ -617,9 +618,8 @@ class ShopperTestCase(TestCase):
 
 
 class OrderTestCase(TestCase):
+    @mocked_api.activate
     def setUp(self):
-        helper.configure_client()
-
         self.contact_info = ContactInfo(
             first_name='John',
             last_name='Doe',
@@ -639,7 +639,7 @@ class OrderTestCase(TestCase):
             card_type=helper.DUMMY_CARD_VISA['card_type'],
             expiration_month=helper.DUMMY_CARD_VISA['expiration_month'],
             expiration_year=helper.DUMMY_CARD_VISA['expiration_year'],
-            encrypted_card_number=helper.DUMMY_CARD_VISA['encrypted_card_number'],
+            encrypted_card_number='encrypted_%s' % helper.DUMMY_CARD_VISA['card_number'],
             encrypted_security_code=helper.DUMMY_CARD_VISA['encrypted_security_code'])
 
         self.credit_card_selection = CreditCardSelection(
@@ -682,9 +682,10 @@ class OrderTestCase(TestCase):
                 card_type=helper.DUMMY_CARD_MASTERCARD['card_type'],
                 expiration_month=helper.DUMMY_CARD_MASTERCARD['expiration_month'],
                 expiration_year=helper.DUMMY_CARD_MASTERCARD['expiration_year'],
-                encrypted_card_number=helper.DUMMY_CARD_MASTERCARD['encrypted_card_number'],
+                encrypted_card_number='encrypted_%s' % helper.DUMMY_CARD_MASTERCARD['card_number'],
                 encrypted_security_code=helper.DUMMY_CARD_MASTERCARD['encrypted_security_code'])))
 
+    @mocked_api.activate
     def test_shopper_with_credit_card_creating_order_succeeds(self):
         amount_in_pence = 150
         amount = amount_in_pence / 100.0
@@ -723,6 +724,7 @@ class OrderTestCase(TestCase):
             order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
                 'credit-card']['card-last-four-digits'], self.credit_card.card_number[-4:])
 
+    @mocked_api.activate
     def test_shopper_with_encrypted_credit_card_creating_order_succeeds(self):
         amount_in_pence = 150
         amount = amount_in_pence / 100.0
@@ -761,6 +763,7 @@ class OrderTestCase(TestCase):
             order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
                 'credit-card']['card-last-four-digits'], self.credit_card_selection.card_last_four_digits)
 
+    @mocked_api.activate
     def test_shopper_without_credit_card_creating_order_fails(self):
         order = Order()
 
@@ -780,10 +783,11 @@ class OrderTestCase(TestCase):
                 sku_id=helper.TEST_PRODUCT_SKU_ID,
                 amount_in_pence=100,
                 credit_card=self.credit_card_selection)
-        self.assertIsNone(e.exception.code)
+        self.assertEqual(e.exception.code, '10000')
         self.assertEqual(e.exception.description,
                          'The order failed because shopper payment details were incorrect or insufficient.')
 
+    @mocked_api.activate
     def test_shopper_with_two_credit_cards_with_valid_selection_succeeds(self):
         amount_in_pence = 150
         amount = amount_in_pence / 100.0
@@ -822,6 +826,7 @@ class OrderTestCase(TestCase):
             order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
                 'credit-card']['card-last-four-digits'], self.credit_card_selection.card_last_four_digits)
 
+    @mocked_api.activate
     def test_shopper_with_two_encrypted_credit_cards_with_valid_selection_succeeds(self):
         amount_in_pence = 150
         amount = amount_in_pence / 100.0
@@ -860,6 +865,7 @@ class OrderTestCase(TestCase):
             order_obj['post-sale-info']['invoices']['invoice']['financial-transactions']['financial-transaction'][
                 'credit-card']['card-last-four-digits'], self.credit_card_selection.card_last_four_digits)
 
+    @mocked_api.activate
     def test_shopper_with_two_credit_cards_with_invalid_selection_fails(self):
         order = Order()
 

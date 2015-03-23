@@ -115,7 +115,7 @@ class Client(object):
                 '\n\t'.join([
                     'Bluesnap response:',
                     'Code: %s' % str(response.status_code),
-                    'Content-type: %s' % str(response.headers.get('content-type')),
+                    'Headers: %s' % str(dict(response.headers)),
                     'Content: %s' % response.content]))
 
         body = self._process_response_body(response)
