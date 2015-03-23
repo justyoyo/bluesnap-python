@@ -5,10 +5,8 @@ import re
 import responses
 import xmltodict
 
+from . import helper
 from bluesnap import client
-
-
-shoppers = {}
 
 
 def _assert_request_authorized(client, request):
@@ -19,7 +17,62 @@ def _assert_request_authorized(client, request):
         '%s:%s' % (client.username, client.password)))
 
 
-def _add_callbacks():
+mock_responses = {
+    'card_expired': '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messages
+    xmlns="http://ws.plimus.com">
+    <message>
+        <error-name>EXPIRED_CARD</error-name>
+        <code>14002</code>
+        <description>Order creation could not be completed because of payment processing failure: 430306 - The expiration date entered is invalid. Enter valid expiration date or try another card</description>
+    </message>
+</messages>''',
+    'insufficient_funds': '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messages
+    xmlns="http://ws.plimus.com">
+    <message>
+        <error-name>INSUFFICIENT_FUNDS</error-name>
+        <code>14002</code>
+        <description>Order creation could not be completed because of payment processing failure: 430360 - Insufficient funds. Please use another card or contact your bank for assistance</description>
+    </message>
+</messages>''',
+    'invalid_card_number': '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messages
+    xmlns="http://ws.plimus.com">
+    <message>
+        <error-name>INVALID_CARD_NUMBER</error-name>
+        <code>14002</code>
+        <description>Order creation could not be completed because of payment processing failure: 430330 - Invalid card number. Please check the number and try again, or use a different card</description>
+    </message>
+</messages>''',
+    'incorrect_information': '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messages
+    xmlns="http://ws.plimus.com">
+    <message>
+        <error-name>INCORRECT_INFORMATION</error-name>
+        <code>14002</code>
+        <description>Order creation could not be completed because of payment processing failure: 430285 - Authorization has failed for this transaction. Please try again or contact your bank for assistance</description>
+    </message>
+</messages>''',
+}
+
+def _generate_card_signature(card_number, expiration_month, expiration_year):
+    return '%s/%d/%d' % (
+        card_number, int(expiration_month), int(expiration_year))
+
+credit_card_number_to_error_responses = {
+    _generate_card_signature('4917484589897107', 4, 2018):
+        mock_responses['card_expired'],
+    _generate_card_signature('4917484589897107', 5, 2018):
+        mock_responses['insufficient_funds'],
+    _generate_card_signature('4917484589897107', 8, 2018):
+        mock_responses['invalid_card_number'],
+    _generate_card_signature('378282246310005', 5, 2018):
+        mock_responses['incorrect_information'],
+}
+
+
+def _add_callbacks(shoppers):
     _client = client.default()
 
     def assert_authorized(func):
@@ -103,12 +156,33 @@ def _add_callbacks():
             payment_info = body['shopper']['shopper-info']['payment-info']
             credit_card = payment_info['credit-cards-info'][
                 'credit-card-info']['credit-card']
-            credit_card['card-last-four-digits'] = credit_card[
-                'card-number'][-4:]
 
-            for key in credit_card.keys():
-                if key not in ('card-type', 'card-last-four-digits'):
-                    del credit_card[key]
+            card_number = None
+
+            # Attempt to extract credit card number
+            if 'card-number' in credit_card:
+                card_number = credit_card['card-number']
+            elif ('encrypted-card-number' in credit_card
+                    and credit_card['encrypted-card-number'].startswith(
+                        'encrypted_')):
+                card_number = credit_card['encrypted-card-number'][10:]
+
+            # Check if invalid card numbers were used
+            card_signature = _generate_card_signature(
+                card_number=card_number,
+                expiration_month=credit_card['expiration-month'],
+                expiration_year=credit_card['expiration-year'])
+            if card_signature in credit_card_number_to_error_responses:
+                return (400,
+                        {'content-type': 'application/xml'},
+                        credit_card_number_to_error_responses[card_signature])
+
+            credit_card['card-last-four-digits'] = card_number[-4:]
+
+            # Remove unexpected fields
+            keys_to_keep = {'card-type', 'card-last-four-digits'}
+            for key_to_discard in (set(credit_card.keys()) - keys_to_keep):
+                del credit_card[key_to_discard]
 
             # Update shopper
             credit_card_info = shopper['shopper']['shopper-info'][
@@ -137,6 +211,7 @@ def activate(func):
     @wraps(func)
     @responses.activate
     def wrapper(*args, **kwargs):
-        _add_callbacks()
+        shoppers = {}
+        _add_callbacks(shoppers=shoppers)
         return func(*args, **kwargs)
     return wrapper

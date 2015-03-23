@@ -3,8 +3,7 @@ from unittest import TestCase
 from mock import MagicMock
 import responses
 
-from bluesnap import exceptions
-from bluesnap.exceptions import APIError
+from bluesnap import client, exceptions
 from bluesnap.models import ContactInfo, PlainCreditCard, CreditCardSelection, EncryptedCreditCard
 from bluesnap.resources import Order, Shopper
 import helper
@@ -21,7 +20,7 @@ class ShopperTestCase(TestCase):
                 card_type=helper.DUMMY_CARD_VISA['card_type'],
                 expiration_month=helper.DUMMY_CARD_VISA['expiration_month'],
                 expiration_year=helper.DUMMY_CARD_VISA['expiration_year'],
-                encrypted_card_number=helper.DUMMY_CARD_VISA['encrypted_card_number'],
+                encrypted_card_number='encrypted_%s' % helper.DUMMY_CARD_VISA['card_number'],
                 encrypted_security_code=helper.DUMMY_CARD_VISA['encrypted_security_code']
             )
         return self._encrypted_credit_card
@@ -33,7 +32,7 @@ class ShopperTestCase(TestCase):
                 card_type=helper.DUMMY_CARD_MASTERCARD['card_type'],
                 expiration_month=helper.DUMMY_CARD_MASTERCARD['expiration_month'],
                 expiration_year=helper.DUMMY_CARD_MASTERCARD['expiration_year'],
-                encrypted_card_number=helper.DUMMY_CARD_MASTERCARD['encrypted_card_number'],
+                encrypted_card_number='encrypted_%s' % helper.DUMMY_CARD_MASTERCARD['card_number'],
                 encrypted_security_code=helper.DUMMY_CARD_MASTERCARD['encrypted_security_code']
             )
         return self._encrypted_second_credit_card
@@ -45,7 +44,7 @@ class ShopperTestCase(TestCase):
                 card_type=helper.DUMMY_CARD_AMEX['card_type'],
                 expiration_month=helper.DUMMY_CARD_AMEX['expiration_month'],
                 expiration_year=helper.DUMMY_CARD_AMEX['expiration_year'],
-                encrypted_card_number=helper.DUMMY_CARD_AMEX['encrypted_card_number'],
+                encrypted_card_number='encrypted_%s' % helper.DUMMY_CARD_AMEX['card_number'],
                 encrypted_security_code=helper.DUMMY_CARD_AMEX['encrypted_security_code']
             )
         return self._encrypted_third_credit_card
@@ -80,6 +79,7 @@ class ShopperTestCase(TestCase):
             card_number=helper.DUMMY_CARD_AMEX['card_number'],
             security_code=helper.DUMMY_CARD_AMEX['security_code'])
 
+    @mocked_api.activate
     def test_create_with_valid_contact_info_returning_id(self):
         shopper = Shopper()
         shopper_id = shopper.create(
@@ -87,6 +87,7 @@ class ShopperTestCase(TestCase):
 
         self.assertIsNotNone(shopper_id)
 
+    @mocked_api.activate
     def test_create_with_valid_contact_info_returning_object(self):
         shopper = Shopper()
 
@@ -102,6 +103,7 @@ class ShopperTestCase(TestCase):
         self.assertEqual(shopper_info['store-id'], shopper.client.default_store_id)
         self.assertIsNone(shopper_info['payment-info']['credit-cards-info'])
 
+    @mocked_api.activate
     def test_create_with_valid_contact_info_and_credit_card(self):
         shopper = Shopper()
 
@@ -117,6 +119,7 @@ class ShopperTestCase(TestCase):
         self.assertEqual(shopper_contact_info['last-name'], self.contact_info.last_name)
         self.assertEqual(shopper_info['store-id'], shopper.client.default_store_id)
 
+    @mocked_api.activate
     def test_create_with_valid_contact_info_and_encrypted_credit_card(self):
         shopper = Shopper()
 
@@ -132,44 +135,96 @@ class ShopperTestCase(TestCase):
         self.assertEqual(shopper_contact_info['last-name'], self.contact_info.last_name)
         self.assertEqual(shopper_info['store-id'], shopper.client.default_store_id)
 
+    @responses.activate
     def test_create_with_invalid_parameters(self):
+        error_msg = (
+            'Seller 397608 encountered a problem creating a new shopper due '
+            'to incorrect input.')
+        responses.add(
+            responses.POST,
+            '%s/services/2/shoppers' % client.default().endpoint_url,
+            status=400,
+            content_type='application/xml',
+            body='''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messages xmlns="http://ws.plimus.com">
+<message>
+    <description>%s</description>
+</message>
+<message>
+    <code>10001</code>
+    <description>'Email Address' is not a valid email address.</description>
+    <invalid-property>
+        <name>shopperInfo.shopperContactInfo.email</name>
+        <message-value/>
+    </invalid-property>
+</message>
+<message>
+    <code>10001</code>
+    <description>Field 'Email Address' is required.</description>
+    <invalid-property>
+        <name>shopperInfo.shopperContactInfo.email</name>
+        <message-value/>
+    </invalid-property>
+</message>
+<message>
+    <code>10001</code>
+    <description>Field 'Email Address' is required.</description>
+    <invalid-property>
+        <name>shopperInfo.invoiceContactsInfo.invoiceContactInfo.email</name>
+        <message-value/>
+    </invalid-property>
+</message>
+<message>
+    <code>10001</code>
+    <description>'Email Address' is not a valid email address.</description>
+    <invalid-property>
+        <name>shopperInfo.invoiceContactsInfo.invoiceContactInfo.email</name>
+        <message-value/>
+    </invalid-property>
+</message>
+</messages>''' % error_msg)
+
         shopper = Shopper()
 
-        # TODO raise a more informative exception instead of a generic one
-        try:
+        with self.assertRaises(exceptions.APIError) as cm:
             shopper.create(
                 contact_info=ContactInfo(email=''),
                 credit_card=self.credit_card
             )
-            self.assertTrue(False, 'APIError not raised')
-        except APIError as e:
-            self.assertEqual(e.status_code, 400)
-            self.assertEqual(e.description, 'None')
-            self.assertGreater(len(e.messages), 1)
-            self.assertEqual(
-                e.messages[0]['description'],
-                'Seller 397608 encountered a problem creating a new shopper due to incorrect input.'
-            )
 
+        self.assertEqual(cm.exception.status_code, 400)
+        self.assertEqual(cm.exception.description, 'None')
+        self.assertGreater(len(cm.exception.messages), 1)
+        self.assertEqual(cm.exception.messages[0]['description'], error_msg)
+
+    @responses.activate
     def test_create_with_invalid_parameters_encrypted(self):
+        error_msg = 'Invalid encrypted input'
+
+        responses.add(
+            responses.POST,
+            '%s/services/2/shoppers' % client.default().endpoint_url,
+            status=400,
+            content_type='application/xml',
+            body='''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messages xmlns="http://ws.plimus.com">
+<message>
+    <code>19002</code>
+    <description>%s</description>
+</message>
+</messages>''' % error_msg)
+
         shopper = Shopper()
 
-        # TODO raise a more informative exception instead of a generic one
-        try:
+        with self.assertRaises(exceptions.APIError) as cm:
             shopper.create(
                 contact_info=ContactInfo(email=''),
                 credit_card=self.encrypted_credit_card
             )
-            self.assertTrue(False, 'APIError not raised')
-        except APIError as e:
-            self.assertEqual(e.status_code, 400)
-            self.assertEqual(e.description, 'None')
-            self.assertGreater(len(e.messages), 1)
-            self.assertEqual(
-                e.messages[0]['description'],
-                'Seller 397608 encountered a problem creating a new shopper due to incorrect input.'
-            )
+        self.assertEqual(cm.exception.status_code, 400)
+        self.assertEqual(cm.exception.description, error_msg)
 
+    @mocked_api.activate
     def test_find_by_shopper_id(self):
         shopper = Shopper()
         shopper_id = shopper.create(
@@ -186,6 +241,7 @@ class ShopperTestCase(TestCase):
         self.assertEqual(shopper_contact_info['last-name'], self.contact_info.last_name)
         self.assertEqual(shopper_obj['shopper-info']['store-id'], shopper.client.default_store_id)
 
+    @mocked_api.activate
     def test_find_by_seller_shopper_id(self):
         seller_id = 'seller_id'
         seller_shopper_id = 'seller_shopper_id'
@@ -198,41 +254,75 @@ class ShopperTestCase(TestCase):
         # find_by_seller_shopper_id
         shopper.find_by_seller_shopper_id(seller_shopper_id)
 
-        shopper.find_by_shopper_id.assert_called_once_with('{seller_shopper_id},{seller_id}'.format(
-            seller_shopper_id=seller_shopper_id,
-            seller_id=seller_id))
+        shopper.find_by_shopper_id.assert_called_once_with(
+            '{seller_shopper_id},{seller_id}'.format(
+                seller_shopper_id=seller_shopper_id,
+                seller_id=seller_id))
 
+    @responses.activate
     def test_find_by_bogus_shopper_id_and_seller_shopper_id_raises_exception(self):
-        # TODO raise a more informative exception instead of a generic one
-        try:
-            Shopper().find_by_shopper_id('0')
-            self.assertTrue(False, 'APIError not raised')
-        except APIError as e:
-            self.assertEqual(e.status_code, 403)
-            self.assertRegexpMatches(e.description, 'User: API_\d+ is not authorized to view shopper: 0')
+        bogus_shopper_id = 'bogus_shopper_id'
+        bogus_seller_shopper_id = 'bogus_seller_shopper_id'
 
-        # TODO raise a more informative exception instead of a generic one
-        try:
-            Shopper().find_by_seller_shopper_id('bogus_seller_shopper_id')
-            self.assertTrue(False, 'APIError not raised')
-        except APIError as e:
-            self.assertEqual(e.status_code, 403)
-            self.assertRegexpMatches(e.description, 'User: API_\d+ is not authorized to view seller shopper: bogus_seller_shopper_id')
+        responses.add(
+            responses.GET,
+            '%s/services/2/shoppers/%s' % (
+                client.default().endpoint_url, bogus_shopper_id),
+            status=403,
+            content_type='application/xml',
+            body='User: %s is not authorized to view shopper: %s.' % (
+                client.default().username, bogus_shopper_id)
+        )
+        responses.add(
+            responses.GET,
+            '%s/services/2/shoppers/%s,%s' % (
+                client.default().endpoint_url,
+                bogus_seller_shopper_id,
+                client.default().seller_id),
+            status=403,
+            content_type='application/xml',
+            body='User: %s is not authorized to view seller shopper: %s.' % (
+                client.default().username, bogus_seller_shopper_id)
+        )
 
+        with self.assertRaises(exceptions.APIError) as cm:
+            Shopper().find_by_shopper_id(bogus_shopper_id)
+            self.assertTrue(False, 'APIError not raised')
+        self.assertEqual(cm.exception.status_code, 403)
+        self.assertRegexpMatches(
+            cm.exception.description,
+            'User: %s is not authorized to view shopper: %s.' % (
+                client.default().username, bogus_shopper_id))
+
+        with self.assertRaises(exceptions.APIError) as cm:
+            Shopper().find_by_seller_shopper_id(bogus_seller_shopper_id)
+            self.assertTrue(False, 'APIError not raised')
+        self.assertEqual(cm.exception.status_code, 403)
+        self.assertRegexpMatches(
+            cm.exception.description,
+            'User: %s is not authorized to view seller shopper: %s.' % (
+                client.default().username, bogus_seller_shopper_id))
+
+    @responses.activate
     def test_update_fails_with_invalid_shopper_id(self):
+        shopper_id = '1'
+        error_msg = 'User: %s is not authorized to update shopper: %s.' % (
+            client.default().username, shopper_id)
+
+        responses.add(
+            responses.PUT,
+            '%s/services/2/shoppers/%s' % (
+                client.default().endpoint_url, shopper_id),
+            status=403,
+            content_type='application/xml',
+            body=error_msg)
+
         shopper = Shopper()
 
-        # TODO raise a more informative exception instead of a generic one
-
-        try:
-            shopper.update(
-                '0',
-                contact_info=self.contact_info
-            )
-            self.assertTrue(False, 'APIError not raised')
-        except APIError as e:
-            self.assertEqual(e.status_code, 403)
-            self.assertRegexpMatches(e.description, 'User: API_\d+ is not authorized to update shopper: 0')
+        with self.assertRaises(exceptions.APIError) as cm:
+            shopper.update(shopper_id, contact_info=self.contact_info)
+        self.assertEqual(cm.exception.status_code, 403)
+        self.assertEqual(cm.exception.description, error_msg)
 
     @mocked_api.activate
     def test_add_credit_card(self):
@@ -367,6 +457,7 @@ class ShopperTestCase(TestCase):
              {'card-last-four-digits': self.third_credit_card.card_number[-4:],
               'card-type': self.encrypted_third_credit_card.card_type}])
 
+    @mocked_api.activate
     def test_add_invalid_credit_card(self):
         # Create a shopper, ensuring no credit card info was added
         shopper = Shopper()
@@ -386,7 +477,7 @@ class ShopperTestCase(TestCase):
                     expiration_year=helper.DUMMY_CARD_VISA__EXPIRED['expiration_year'],
                     card_number=helper.DUMMY_CARD_VISA__EXPIRED['card_number'],
                     security_code=helper.DUMMY_CARD_VISA__EXPIRED['security_code']))
-        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.code, '430306-14002')
         self.assertEqual(e.exception.description,
                          'The expiration date entered is invalid. Enter valid expiration date or try another card')
         self.assertEqual(e.exception.verbose_description,
@@ -404,7 +495,7 @@ class ShopperTestCase(TestCase):
                     expiration_year=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['expiration_year'],
                     card_number=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['card_number'],
                     security_code=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['security_code']))
-        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.code, '430360-14002')
         self.assertEqual(e.exception.description,
                          'Insufficient funds. Please use another card or contact your bank for assistance')
         self.assertEqual(e.exception.verbose_description,
@@ -422,7 +513,7 @@ class ShopperTestCase(TestCase):
                     expiration_year=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['expiration_year'],
                     card_number=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['card_number'],
                     security_code=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['security_code']))
-        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.code, '430330-14002')
         self.assertEqual(e.exception.description,
                          'Invalid card number. Please check the number and try again, or use a different card')
         self.assertEqual(e.exception.verbose_description,
@@ -440,11 +531,12 @@ class ShopperTestCase(TestCase):
                     expiration_year=helper.DUMMY_CARD_AMEX__AUTH_FAIL['expiration_year'],
                     card_number=helper.DUMMY_CARD_AMEX__AUTH_FAIL['card_number'],
                     security_code=helper.DUMMY_CARD_AMEX__AUTH_FAIL['security_code']))
-        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.code, '430285-14002')
         self.assertEqual(e.exception.description,
                          'Authorization has failed for this transaction. '
                          'Please try again or contact your bank for assistance')
 
+    @mocked_api.activate
     def test_add_invalid_encrypted_credit_card(self):
         # Create a shopper, ensuring no credit card info was added
         shopper = Shopper()
@@ -462,9 +554,9 @@ class ShopperTestCase(TestCase):
                     card_type=helper.DUMMY_CARD_VISA__EXPIRED['card_type'],
                     expiration_month=helper.DUMMY_CARD_VISA__EXPIRED['expiration_month'],
                     expiration_year=helper.DUMMY_CARD_VISA__EXPIRED['expiration_year'],
-                    encrypted_card_number=helper.DUMMY_CARD_VISA__EXPIRED['encrypted_card_number'],
+                    encrypted_card_number='encrypted_%s' % helper.DUMMY_CARD_VISA__EXPIRED['card_number'],
                     encrypted_security_code=helper.DUMMY_CARD_VISA__EXPIRED['encrypted_security_code']))
-        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.code, '430306-14002')
         self.assertEqual(e.exception.description,
                          'The expiration date entered is invalid. Enter valid expiration date or try another card')
         self.assertEqual(e.exception.verbose_description,
@@ -480,9 +572,9 @@ class ShopperTestCase(TestCase):
                     card_type=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['card_type'],
                     expiration_month=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['expiration_month'],
                     expiration_year=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['expiration_year'],
-                    encrypted_card_number=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['encrypted_card_number'],
+                    encrypted_card_number='encrypted_%s' % helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['card_number'],
                     encrypted_security_code=helper.DUMMY_CARD_VISA__INSUFFICIENT_FUNDS['encrypted_security_code']))
-        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.code, '430360-14002')
         self.assertEqual(e.exception.description,
                          'Insufficient funds. Please use another card or contact your bank for assistance')
         self.assertEqual(e.exception.verbose_description,
@@ -498,9 +590,9 @@ class ShopperTestCase(TestCase):
                     card_type=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['card_type'],
                     expiration_month=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['expiration_month'],
                     expiration_year=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['expiration_year'],
-                    encrypted_card_number=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['encrypted_card_number'],
+                    encrypted_card_number='encrypted_%s' % helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['card_number'],
                     encrypted_security_code=helper.DUMMY_CARD_VISA__INVALID_CARD_NUMBER['encrypted_security_code']))
-        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.code, '430330-14002')
         self.assertEqual(e.exception.description,
                          'Invalid card number. Please check the number and try again, or use a different card')
         self.assertEqual(e.exception.verbose_description,
@@ -516,9 +608,9 @@ class ShopperTestCase(TestCase):
                     card_type=helper.DUMMY_CARD_AMEX__AUTH_FAIL['card_type'],
                     expiration_month=helper.DUMMY_CARD_AMEX__AUTH_FAIL['expiration_month'],
                     expiration_year=helper.DUMMY_CARD_AMEX__AUTH_FAIL['expiration_year'],
-                    encrypted_card_number=helper.DUMMY_CARD_AMEX__AUTH_FAIL['encrypted_card_number'],
+                    encrypted_card_number='encrypted_%s' % helper.DUMMY_CARD_AMEX__AUTH_FAIL['card_number'],
                     encrypted_security_code=helper.DUMMY_CARD_AMEX__AUTH_FAIL['encrypted_security_code']))
-        self.assertEqual(e.exception.code, '14002')
+        self.assertEqual(e.exception.code, '430285-14002')
         self.assertEqual(e.exception.description,
                          'Authorization has failed for this transaction. '
                          'Please try again or contact your bank for assistance')
@@ -673,7 +765,7 @@ class OrderTestCase(TestCase):
         order = Order()
 
         # Without credit card selection
-        with self.assertRaises(APIError) as e:
+        with self.assertRaises(exceptions.APIError) as e:
             order.create(
                 shopper_id=self.shopper_id_without_credit_card,
                 sku_id=helper.TEST_PRODUCT_SKU_ID,
@@ -682,7 +774,7 @@ class OrderTestCase(TestCase):
         self.assertEqual(e.exception.description, 'Order creation failure, since no payment information was provided.')
 
         # With bogus credit card selection
-        with self.assertRaises(APIError) as e:
+        with self.assertRaises(exceptions.APIError) as e:
             order.create(
                 shopper_id=self.shopper_id_without_credit_card,
                 sku_id=helper.TEST_PRODUCT_SKU_ID,
@@ -771,7 +863,7 @@ class OrderTestCase(TestCase):
     def test_shopper_with_two_credit_cards_with_invalid_selection_fails(self):
         order = Order()
 
-        with self.assertRaises(APIError) as e:
+        with self.assertRaises(exceptions.APIError) as e:
             order.create(
                 shopper_id=self.shopper_id_with_two_credit_cards,
                 sku_id=helper.TEST_PRODUCT_SKU_ID,

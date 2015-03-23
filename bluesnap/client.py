@@ -111,8 +111,12 @@ class Client(object):
                            data=data)
 
         if self.logger:
-            self.logger.info('\n\tBluesnap response:\n\tCode: ' + str(response.status_code)
-                             + '\n\tContent: ' + response.content)
+            self.logger.info(
+                '\n\t'.join([
+                    'Bluesnap response:',
+                    'Code: %s' % str(response.status_code),
+                    'Content-type: %s' % str(response.headers.get('content-type')),
+                    'Content: %s' % response.content]))
 
         body = self._process_response_body(response)
 
