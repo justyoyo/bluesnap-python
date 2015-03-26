@@ -97,7 +97,13 @@ class Client(object):
         request = getattr(requests, method.lower())  # requests.{get,post,put,delete}
 
         if self.logger:
-            self.logger.info('\n\t'.join(('Bluesnap request:', str(url), str(headers), str(data))))
+            self.logger.info(
+                '\n\t'.join([
+                    'Bluesnap request:',
+                    method,
+                    str(url),
+                    str(headers),
+                    str(data)]))
 
         response = request(url,
                            headers=headers,
@@ -105,8 +111,12 @@ class Client(object):
                            data=data)
 
         if self.logger:
-            self.logger.info('\n\tBluesnap response:\n\tCode: ' + str(response.status_code)
-                             + '\n\tContent: ' + response.content)
+            self.logger.info(
+                '\n\t'.join([
+                    'Bluesnap response:',
+                    'Code: %s' % str(response.status_code),
+                    'Headers: %s' % str(dict(response.headers)),
+                    'Content: %s' % response.content]))
 
         body = self._process_response_body(response)
 
