@@ -18,6 +18,24 @@ def default_user_agent():
     return 'justyoyo/bluesnap-python {} ({})'.format(__version__, library_versions)
 
 
+def format_request(req):
+    return '\n'.join([
+        '%s %s' % (req.method, req.url),
+        '\n'.join('%s: %s' % (k, v) for k, v in req.headers.items()),
+        '',
+        req.body or '',
+    ])
+
+
+def format_response(res):
+    return '\n'.join([
+        '%d %s' % (res.status_code, res.reason or ''),
+        '\n'.join('%s: %s' % (k, v) for k, v in res.headers.items()),
+        '',
+        res.text,
+    ])
+
+
 class Client(object):
     ENDPOINTS = {
         'live': 'https://ws.bluesnap.com',
@@ -61,6 +79,8 @@ class Client(object):
         self.E = ElementMaker(namespace=self.NAMESPACE,
                               nsmap={None: self.NAMESPACE})
 
+        self.last_response = None
+
     @property
     def endpoint_url(self):
         return self.ENDPOINTS[self.env]
@@ -89,34 +109,34 @@ class Client(object):
         :return:
         """
         headers = {
-            'content-type': 'application/xml',  # Must be XML or API will complain
+            'content-type': 'application/xml',  # Required by Bluesnap API
         }
 
         url = self.endpoint_url + path
 
-        request = getattr(requests, method.lower())  # requests.{get,post,put,delete}
+        # Prepare request
+        req = requests.Request(
+            method, url, headers,
+            data=data,
+            auth=self.http_basic_auth)
+        r = req.prepare()
 
         if self.logger:
             self.logger.info(
-                '\n\t'.join([
-                    'Bluesnap request:',
-                    method,
-                    str(url),
-                    str(headers),
-                    str(data)]))
+                'Bluesnap request:\n%s', format_request(r))
 
-        response = request(url,
-                           headers=headers,
-                           auth=self.http_basic_auth,
-                           data=data)
+        # Send request, returning response
+        s = requests.Session()
+        response = s.send(r)
 
         if self.logger:
             self.logger.info(
-                '\n\t'.join([
-                    'Bluesnap response:',
-                    'Code: %s' % str(response.status_code),
-                    'Headers: %s' % str(dict(response.headers)),
-                    'Content: %s' % response.content]))
+                'Bluesnap response (took %s):\n%s',
+                response.elapsed,
+                format_response(response))
+
+        # Save request and response for further logging
+        self.last_response = response
 
         body = self._process_response_body(response)
 
