@@ -9,7 +9,7 @@ with open('README.md') as f:
 
 requires = [
     'lxml==3.3.4',
-    'requests==2.2.1',
+    'requests==2.4.2',
     'xmltodict==0.9.0'
 ]
 
